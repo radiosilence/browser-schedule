@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 tasks:
   build:
@@ -22,7 +22,7 @@ tasks:
 
   test-work:
     desc: Test during work hours (simulate by checking current time)
-    deps: [build, setup-config]  
+    deps: [build, setup-config]
     cmds:
       - ./browser-schedule-swift http://test-work.com
       - task: logs
@@ -52,19 +52,19 @@ tasks:
         [browsers]
         work = "Google Chrome"
         personal = "Zen"
-        
+
         [urls]
         personal = ["reddit.com"]
         work = ["mycompany.atlassian.net"]
-        
+
         [work_time]
         start = "9:00"
         end = "18:00"
-        
+
         [work_days]
         start = "Mon"
         end = "Fri"
-        
+
         # [log]
         # enabled = false
         EOF
@@ -122,13 +122,10 @@ tasks:
   uninstall:
     desc: Remove the app bundle and reset default browser
     cmds:
-      - |
-        osascript -e 'tell application "System Preferences" to reveal anchor "defaultbrowser" of pane "com.apple.preference.general"'
-        echo "Please manually set default browser in System Preferences (opened for you)"
       - rm -rf /Applications/BrowserSchedule.app
 
   status:
-    desc: Show current status  
+    desc: Show current status
     cmds:
       - |
         if [ -d "/Applications/BrowserSchedule.app" ]; then
