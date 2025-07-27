@@ -8,12 +8,22 @@ tasks:
       - swift build -c release
       - cp .build/release/BrowserSchedule browser-schedule-swift
     sources:
-      - main.swift
+      - Sources/**/*.swift
       - Package.swift
     generates:
       - browser-schedule-swift
 
   test:
+    desc: Run all unit tests
+    cmds:
+      - swift test
+
+  test-verbose:
+    desc: Run unit tests with verbose output
+    cmds:
+      - swift test --verbose
+
+  test-app:
     desc: Test the application with a URL
     deps: [build, setup-config]
     cmds:
@@ -26,6 +36,24 @@ tasks:
     cmds:
       - ./browser-schedule-swift http://test-work.com
       - task: logs
+
+  test-all:
+    desc: Run both unit tests and application tests
+    cmds:
+      - task: test
+      - task: test-app
+
+  test-coverage:
+    desc: Run tests with code coverage
+    cmds:
+      - swift test --enable-code-coverage
+      - |
+        if command -v xcov >/dev/null 2>&1; then
+          echo "Generating coverage report with xcov..."
+          xcov --scheme BrowserSchedule-Package --output_directory coverage_report
+        else
+          echo "Coverage data collected. Install xcov for HTML reports: gem install xcov"
+        fi
 
   install:
     desc: Install the app bundle as default browser
@@ -147,6 +175,7 @@ tasks:
     silent: true
     cmds:
       - rm -f browser-schedule-swift
+      - rm -rf coverage_report
       - swift package clean
 
   logs:

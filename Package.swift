@@ -8,12 +8,20 @@ let package = Package(
         .package(url: "https://github.com/LebJe/TOMLKit.git", from: "0.6.0")
     ],
     targets: [
+        .target(
+            name: "BrowserScheduleCore",
+            dependencies: ["TOMLKit"],
+            path: "Sources/BrowserScheduleCore"
+        ),
         .executableTarget(
             name: "BrowserSchedule",
-            dependencies: ["TOMLKit"],
-            path: ".",
-            exclude: ["config.template.toml", "Taskfile.yml", "browser-schedule-swift", ".gitignore"],
-            sources: ["main.swift"]
+            dependencies: ["BrowserScheduleCore"],
+            path: "Sources/BrowserSchedule"
+        ),
+        .testTarget(
+            name: "BrowserScheduleTests",
+            dependencies: ["BrowserScheduleCore", "TOMLKit"],
+            path: "Tests/BrowserScheduleTests"
         )
     ]
 )
