@@ -1,8 +1,8 @@
 import AppKit
 import CoreServices
 import Foundation
-import os.log
 import TOMLKit
+import os.log
 
 // Configuration struct with TOML parsing
 struct Config: Codable {
@@ -11,27 +11,27 @@ struct Config: Codable {
   let workTime: WorkTime
   let workDays: WorkDays
   let log: Log?
-  
+
   struct Browsers: Codable {
     let work: String
     let personal: String
   }
-  
+
   struct OverrideUrls: Codable {
     let personal: [String]?
     let work: [String]?
   }
-  
+
   struct WorkTime: Codable {
     let start: String
     let end: String
   }
-  
+
   struct WorkDays: Codable {
     let start: String
     let end: String
   }
-  
+
   struct Log: Codable {
     let enabled: Bool
   }
@@ -61,7 +61,8 @@ struct Config: Codable {
   static func loadFromFile() -> Config {
     let homeDir = FileManager.default.homeDirectoryForCurrentUser
     let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
-    let localConfigPath = homeDir.appendingPathComponent(".config/browser-schedule/config.local.toml")
+    let localConfigPath = homeDir.appendingPathComponent(
+      ".config/browser-schedule/config.local.toml")
 
     // Load main config
     guard let configData = try? String(contentsOf: configPath) else {
@@ -77,23 +78,31 @@ struct Config: Codable {
     do {
       let tomlTable = try TOMLTable(string: configData)
       var config = try TOMLDecoder().decode(Config.self, from: tomlTable)
-      
+
       // Try to load and merge local config
       if let localConfigData = try? String(contentsOf: localConfigPath) {
         do {
           let localTomlTable = try TOMLTable(string: localConfigData)
-          let localConfig = try TOMLDecoder().decode(LocalConfig.self, from: localTomlTable)
+          let localConfig = try TOMLDecoder().decode(
+            LocalConfig.self, from: localTomlTable)
           config = mergeConfigs(base: config, local: localConfig)
           if isLoggingEnabled(config) {
-            logger.info("Loaded config from \(configPath.path) and merged \(localConfigPath.path)")
+            logger.info(
+              "Loaded config from \(configPath.path) and merged \(localConfigPath.path)"
+            )
           } else {
-            print("Loaded config from \(configPath.path) and merged \(localConfigPath.path)")
+            print(
+              "Loaded config from \(configPath.path) and merged \(localConfigPath.path)"
+            )
           }
         } catch {
           if isLoggingEnabled(config) {
-            logger.error("Error parsing local config file at \(localConfigPath.path): \(error.localizedDescription)")
+            logger.error(
+              "Error parsing local config file at \(localConfigPath.path): \(error.localizedDescription)"
+            )
           } else {
-            print("Error parsing local config file at \(localConfigPath.path): \(error)")
+            print(
+              "Error parsing local config file at \(localConfigPath.path): \(error)")
           }
         }
       } else {
@@ -103,24 +112,26 @@ struct Config: Codable {
           print("Loaded config from \(configPath.path)")
         }
       }
-      
+
       return config
     } catch {
       let defaults = Config()
       if isLoggingEnabled(defaults) {
-        logger.error("Error parsing config file at \(configPath.path): \(error.localizedDescription)")
+        logger.error(
+          "Error parsing config file at \(configPath.path): \(error.localizedDescription)"
+        )
       } else {
         print("Error parsing config file at \(configPath.path): \(error), using defaults")
       }
       return defaults
     }
   }
-  
+
   static func mergeConfigs(base: Config, local: LocalConfig) -> Config {
     // Merge override domains
     var mergedPersonalDomains: [String] = []
     var mergedWorkDomains: [String] = []
-    
+
     // Add base config domains
     if let baseOverrides = base.urls {
       if let personal = baseOverrides.personal {
@@ -130,7 +141,7 @@ struct Config: Codable {
         mergedWorkDomains.append(contentsOf: work)
       }
     }
-    
+
     // Add local config domains
     if let localOverrides = local.urls {
       if let personal = localOverrides.personal {
@@ -140,18 +151,18 @@ struct Config: Codable {
         mergedWorkDomains.append(contentsOf: work)
       }
     }
-    
+
     let mergedOverrides = OverrideUrls(
       personal: mergedPersonalDomains.isEmpty ? nil : mergedPersonalDomains,
       work: mergedWorkDomains.isEmpty ? nil : mergedWorkDomains
     )
-    
+
     return Config(
-      browsers: local.browsers ?? base.browsers, // Local takes precedence for browsers
+      browsers: local.browsers ?? base.browsers,  // Local takes precedence for browsers
       urls: mergedOverrides,
-      workTime: local.workTime ?? base.workTime, // Local takes precedence for work time
-      workDays: local.workDays ?? base.workDays, // Local takes precedence for work days  
-      log: local.log ?? base.log // Local takes precedence for logging
+      workTime: local.workTime ?? base.workTime,  // Local takes precedence for work time
+      workDays: local.workDays ?? base.workDays,  // Local takes precedence for work days
+      log: local.log ?? base.log  // Local takes precedence for logging
     )
   }
 }
@@ -165,7 +176,8 @@ func isLoggingEnabled(_ config: Config) -> Bool {
 func parseTime(_ timeString: String) -> Int? {
   let components = timeString.split(separator: ":").map { String($0) }
   guard components.count == 2, let hour = Int(components[0]), hour >= 0, hour <= 23,
-        let minute = Int(components[1]), minute >= 0, minute <= 59 else {
+    let minute = Int(components[1]), minute >= 0, minute <= 59
+  else {
     return nil
   }
   return hour
@@ -179,10 +191,10 @@ func dayNameToWeekday(_ dayName: String) -> Int? {
 struct ConfigValidation {
   let isValid: Bool
   let errors: [String]
-  
+
   static func validate(_ config: Config) -> ConfigValidation {
     var errors: [String] = []
-    
+
     // Validate work time
     if parseTime(config.workTime.start) == nil {
       errors.append("Invalid work start time: \(config.workTime.start) (use HH:MM format)")
@@ -190,25 +202,30 @@ struct ConfigValidation {
     if parseTime(config.workTime.end) == nil {
       errors.append("Invalid work end time: \(config.workTime.end) (use HH:MM format)")
     }
-    
+
     // Validate work days
     if dayNameToWeekday(config.workDays.start) == nil {
-      errors.append("Invalid work start day: \(config.workDays.start) (use Sun,Mon,Tue,Wed,Thu,Fri,Sat)")
+      errors.append(
+        "Invalid work start day: \(config.workDays.start) (use Sun,Mon,Tue,Wed,Thu,Fri,Sat)"
+      )
     }
     if dayNameToWeekday(config.workDays.end) == nil {
-      errors.append("Invalid work end day: \(config.workDays.end) (use Sun,Mon,Tue,Wed,Thu,Fri,Sat)")
+      errors.append(
+        "Invalid work end day: \(config.workDays.end) (use Sun,Mon,Tue,Wed,Thu,Fri,Sat)")
     }
-    
+
     // Validate day range makes sense
     if let startDay = dayNameToWeekday(config.workDays.start),
-       let endDay = dayNameToWeekday(config.workDays.end),
-       startDay > endDay {
-      errors.append("Work day range invalid: \(config.workDays.start) is after \(config.workDays.end)")
+      let endDay = dayNameToWeekday(config.workDays.end),
+      startDay > endDay
+    {
+      errors.append(
+        "Work day range invalid: \(config.workDays.start) is after \(config.workDays.end)")
     }
-    
+
     // Note: We allow inverse time ranges for night shifts (e.g., 18:00-9:00)
     // No validation needed for time range order
-    
+
     return ConfigValidation(isValid: errors.isEmpty, errors: errors)
   }
 }
@@ -219,7 +236,7 @@ func isWorkTime(config: Config) -> Bool {
     // Config is invalid, default to personal browser
     return false
   }
-  
+
   let now = Date()
   let calendar = Calendar.current
   let hour = calendar.component(.hour, from: now)
@@ -228,14 +245,14 @@ func isWorkTime(config: Config) -> Bool {
   // Parse work time (we know these are valid from validation)
   let startHour = parseTime(config.workTime.start)!
   let endHour = parseTime(config.workTime.end)!
-  
+
   // Parse work days (we know these are valid from validation)
   let startWeekday = dayNameToWeekday(config.workDays.start)!
   let endWeekday = dayNameToWeekday(config.workDays.end)!
-  
+
   // Check if current day is within work days range
   let isWorkDay = weekday >= startWeekday && weekday <= endWeekday
-  
+
   // Handle time ranges (including night shifts that span midnight)
   let isWorkHour: Bool
   if startHour < endHour {
@@ -247,7 +264,8 @@ func isWorkTime(config: Config) -> Bool {
   }
 
   let shiftType = startHour < endHour ? "day" : "night"
-  let dayCheckMsg = "\(shiftType) shift check: weekday=\(weekday), workDays=\(config.workDays.start)-\(config.workDays.end), hour=\(hour), workHours=\(config.workTime.start)-\(config.workTime.end), isWorkDay=\(isWorkDay), isWorkHour=\(isWorkHour)"
+  let dayCheckMsg =
+    "\(shiftType) shift check: weekday=\(weekday), workDays=\(config.workDays.start)-\(config.workDays.end), hour=\(hour), workHours=\(config.workTime.start)-\(config.workTime.end), isWorkDay=\(isWorkDay), isWorkHour=\(isWorkHour)"
   if isLoggingEnabled(config) {
     logger.debug("\(dayCheckMsg)")
   }
@@ -260,7 +278,7 @@ func getBrowserForURL(_ urlString: String, config: Config) -> String {
     // Fall back to time-based selection if URL parsing fails
     return isWorkTime(config: config) ? config.browsers.work : config.browsers.personal
   }
-  
+
   // Check URL fragment overrides (already merged from config + local)
   if let overrides = config.urls {
     // Check personal overrides first
@@ -271,7 +289,7 @@ func getBrowserForURL(_ urlString: String, config: Config) -> String {
         }
       }
     }
-    
+
     // Check work overrides
     if let workFragments = overrides.work {
       for fragment in workFragments {
@@ -281,7 +299,7 @@ func getBrowserForURL(_ urlString: String, config: Config) -> String {
       }
     }
   }
-  
+
   // Fall back to time-based selection
   return isWorkTime(config: config) ? config.browsers.work : config.browsers.personal
 }
@@ -377,7 +395,7 @@ if CommandLine.arguments.count > 1 {
   case "--config":
     let config = Config.loadFromFile()
     let validation = ConfigValidation.validate(config)
-    
+
     print("Current configuration:")
     print("  Work browser: \(config.browsers.work)")
     print("  Personal browser: \(config.browsers.personal)")
@@ -395,28 +413,31 @@ if CommandLine.arguments.count > 1 {
         print("  Work overrides: \(work.joined(separator: ", "))")
       }
     }
-    
+
     print("  Logging: \(isLoggingEnabled(config) ? "enabled (unified logging)" : "disabled")")
     if isLoggingEnabled(config) {
       print(
         "  View logs: log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 1h"
       )
     }
-    
+
     let homeDir = FileManager.default.homeDirectoryForCurrentUser
     let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
-    let localConfigPath = homeDir.appendingPathComponent(".config/browser-schedule/config.local.toml")
+    let localConfigPath = homeDir.appendingPathComponent(
+      ".config/browser-schedule/config.local.toml")
     print("  Config file: \(configPath.path)")
     if FileManager.default.fileExists(atPath: localConfigPath.path) {
       print("  Local config: \(localConfigPath.path) (merged)")
     }
-    
+
     if !validation.isValid {
       print("  ⚠️  Configuration errors:")
       for error in validation.errors {
         print("     - \(error)")
       }
-      print("  Current: Using personal browser (\(config.browsers.personal)) due to config errors")
+      print(
+        "  Current: Using personal browser (\(config.browsers.personal)) due to config errors"
+      )
     } else {
       if isWorkTime(config: config) {
         print("  Current: Work time - using \(config.browsers.work)")
@@ -493,7 +514,7 @@ struct LocalConfig: Codable {
   let workTime: Config.WorkTime?
   let workDays: Config.WorkDays?
   let log: Config.Log?
-  
+
   enum CodingKeys: String, CodingKey {
     case browsers
     case urls
