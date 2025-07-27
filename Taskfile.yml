@@ -15,34 +15,40 @@ tasks:
 
   test:
     desc: Run all unit tests
+    silent: true
     cmds:
       - swift test
 
   test-verbose:
     desc: Run unit tests with verbose output
+    silent: true
     cmds:
       - swift test --verbose
 
   test-app:
     desc: Test the application with a URL
+    silent: true
     deps: [build, setup-config]
     cmds:
       - ./browser-schedule-swift http://test.com
 
   test-work:
     desc: Test during work hours (simulate by checking current time)
+    silent: true
     deps: [build, setup-config]
     cmds:
       - ./browser-schedule-swift http://test-work.com
 
   test-all:
     desc: Run both unit tests and application tests
+    silent: true
     cmds:
       - task: test
       - task: test-app
 
   test-coverage:
     desc: Run tests with code coverage
+    silent: true
     cmds:
       - swift test --enable-code-coverage
       - |
@@ -55,6 +61,7 @@ tasks:
 
   install:
     desc: Install the app bundle as default browser
+    silent: true
     deps: [build, setup-config]
     cmds:
       - task: create-app-bundle
@@ -62,6 +69,7 @@ tasks:
 
   update:
     desc: Update the app bundle with current config
+    silent: true
     deps: [build]
     cmds:
       - task: create-app-bundle
@@ -147,6 +155,7 @@ tasks:
 
   uninstall:
     desc: Remove the app bundle and reset default browser
+    silent: true
     cmds:
       - rm -rf /Applications/BrowserSchedule.app
       - echo "App removed. To reset default browser, go to System Settings > General > Default web browser"
@@ -154,6 +163,7 @@ tasks:
 
   status:
     desc: Show current status
+    silent: true
     cmds:
       - |
         if [ -d "/Applications/BrowserSchedule.app" ]; then
@@ -178,10 +188,11 @@ tasks:
 
   logs:
     desc: Show recent logs from unified logging
+    silent: true
     cmds:
       - echo "To view logs use:"
       - echo "log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 30m --style compact"
-      - echo "Or for real-time:"  
+      - echo "Or for real-time:"
       - echo "log stream --predicate 'subsystem == \"com.radiosilence.browser-schedule\"'"
 
   config:
