@@ -5,7 +5,6 @@ Switch default browser based on work hours. Chrome during work, personal browser
 ## Setup
 
 ```sh
-cd ~/.dotfiles/packages/browser-schedule
 task install
 ```
 
