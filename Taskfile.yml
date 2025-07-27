@@ -122,8 +122,9 @@ tasks:
   uninstall:
     desc: Remove the app bundle and reset default browser
     cmds:
-      - echo "App removed. To reset default browser, go to System Settings > General > Default web browser"
       - rm -rf /Applications/BrowserSchedule.app
+      - echo "App removed. To reset default browser, go to System Settings > General > Default web browser"
+      - open "x-apple.systempreferences:com.apple.preference.dock"
 
   status:
     desc: Show current status
