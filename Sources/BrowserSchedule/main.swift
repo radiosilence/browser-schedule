@@ -45,9 +45,7 @@ if CommandLine.arguments.count > 1 {
         print("Current configuration:")
         print("  Work browser: \(config.browsers.work)")
         print("  Personal browser: \(config.browsers.personal)")
-        let startHour = parseTime(config.workTime.start) ?? 0
-        let endHour = parseTime(config.workTime.end) ?? 0
-        let shiftType = startHour < endHour ? "" : " (night shift)"
+        let shiftType = config.workTime.isNightShift ? " (night shift)" : ""
         print("  Work hours: \(config.workTime.start)-\(config.workTime.end)\(shiftType)")
         print("  Work days: \(config.workDays.start)-\(config.workDays.end)")
         // Show merged domain overrides
@@ -94,8 +92,7 @@ if CommandLine.arguments.count > 1 {
 
         // Register the app bundle first
         let registerTask = Process()
-        registerTask.launchPath =
-            "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+        registerTask.executableURL = URL(fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
         registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
 
         do {

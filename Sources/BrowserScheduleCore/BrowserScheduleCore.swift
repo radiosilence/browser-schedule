@@ -10,6 +10,23 @@ public let bundleIdentifier = "com.radiosilence.browser-schedule"
 
 // MARK: - Configuration Types
 
+public enum ConfigError: LocalizedError {
+    case fileNotFound(String)
+    case invalidFormat(String)
+    case mergeError(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .fileNotFound(let path):
+            return "Config file not found at \(path)"
+        case .invalidFormat(let details):
+            return "Invalid config format: \(details)"
+        case .mergeError(let details):
+            return "Error merging configs: \(details)"
+        }
+    }
+}
+
 public struct Config: Codable {
     public let browsers: Browsers
     public let urls: OverrideUrls?
@@ -41,6 +58,13 @@ public struct Config: Codable {
         public let start: String
         public let end: String
         
+        public var startHour: Int? { parseTime(start) }
+        public var endHour: Int? { parseTime(end) }
+        public var isNightShift: Bool {
+            guard let start = startHour, let end = endHour else { return false }
+            return start >= end
+        }
+        
         public init(start: String, end: String) {
             self.start = start
             self.end = end
@@ -50,6 +74,9 @@ public struct Config: Codable {
     public struct WorkDays: Codable {
         public let start: String
         public let end: String
+        
+        public var startWeekday: Int? { dayNameToWeekday(start) }
+        public var endWeekday: Int? { dayNameToWeekday(end) }
         
         public init(start: String, end: String) {
             self.start = start
@@ -84,6 +111,41 @@ public struct Config: Codable {
         self.log = log
     }
 
+    public static func loadFromFileWithResult() -> Result<Config, ConfigError> {
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser
+        let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
+        let localConfigPath = homeDir.appendingPathComponent(".config/browser-schedule/config.local.toml")
+        
+        // Load main config
+        guard let configData = try? String(contentsOf: configPath) else {
+            return .failure(.fileNotFound(configPath.path))
+        }
+        
+        do {
+            let tomlTable = try TOMLTable(string: configData)
+            var config = try TOMLDecoder().decode(Config.self, from: tomlTable)
+            
+            // Try to load and merge local config
+            if let localConfigData = try? String(contentsOf: localConfigPath) {
+                do {
+                    let localTomlTable = try TOMLTable(string: localConfigData)
+                    let localConfig = try TOMLDecoder().decode(LocalConfig.self, from: localTomlTable)
+                    config = mergeConfigs(base: config, local: localConfig)
+                    logger.debug("Loaded config from \(configPath.path) and merged \(localConfigPath.path)")
+                } catch {
+                    logger.error("Error parsing local config file at \(localConfigPath.path): \(error.localizedDescription)")
+                    return .failure(.invalidFormat("Local config error: \(error.localizedDescription)"))
+                }
+            } else {
+                logger.debug("Loaded config from \(configPath.path)")
+            }
+            
+            return .success(config)
+        } catch {
+            return .failure(.invalidFormat(error.localizedDescription))
+        }
+    }
+    
     public static func loadFromFile() -> Config {
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
@@ -126,29 +188,14 @@ public struct Config: Codable {
     }
 
     public static func mergeConfigs(base: Config, local: LocalConfig) -> Config {
-        // Merge override domains
-        var mergedPersonalDomains: [String] = []
-        var mergedWorkDomains: [String] = []
-
-        // Add base config domains
-        if let baseOverrides = base.urls {
-            if let personal = baseOverrides.personal {
-                mergedPersonalDomains.append(contentsOf: personal)
-            }
-            if let work = baseOverrides.work {
-                mergedWorkDomains.append(contentsOf: work)
-            }
-        }
-
-        // Add local config domains
-        if let localOverrides = local.urls {
-            if let personal = localOverrides.personal {
-                mergedPersonalDomains.append(contentsOf: personal)
-            }
-            if let work = localOverrides.work {
-                mergedWorkDomains.append(contentsOf: work)
-            }
-        }
+        // Merge override domains using modern Swift collection operations
+        let mergedPersonalDomains = [base.urls?.personal, local.urls?.personal]
+            .compactMap { $0 }
+            .flatMap { $0 }
+        
+        let mergedWorkDomains = [base.urls?.work, local.urls?.work]
+            .compactMap { $0 }
+            .flatMap { $0 }
 
         let mergedOverrides = OverrideUrls(
             personal: mergedPersonalDomains.isEmpty ? nil : mergedPersonalDomains,
@@ -198,9 +245,12 @@ public func parseTime(_ timeString: String) -> Int? {
     return hour
 }
 
+private let dayNameToWeekdayMap: [String: Int] = [
+    "Sun": 1, "Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6, "Sat": 7
+]
+
 public func dayNameToWeekday(_ dayName: String) -> Int? {
-    let days = ["Sun": 1, "Mon": 2, "Tue": 3, "Wed": 4, "Thu": 5, "Fri": 6, "Sat": 7]
-    return days[dayName]
+    dayNameToWeekdayMap[dayName]
 }
 
 // MARK: - Configuration Validation
@@ -248,7 +298,11 @@ public struct ConfigValidation {
 
 public func isWorkTime(config: Config, currentDate: Date = Date()) -> Bool {
     let validation = ConfigValidation.validate(config)
-    if !validation.isValid {
+    guard validation.isValid,
+          let startHour = config.workTime.startHour,
+          let endHour = config.workTime.endHour,
+          let startWeekday = config.workDays.startWeekday,
+          let endWeekday = config.workDays.endWeekday else {
         return false
     }
 
@@ -256,21 +310,12 @@ public func isWorkTime(config: Config, currentDate: Date = Date()) -> Bool {
     let hour = calendar.component(.hour, from: currentDate)
     let weekday = calendar.component(.weekday, from: currentDate) // 1=Sunday, 2=Monday, etc.
 
-    let startHour = parseTime(config.workTime.start)!
-    let endHour = parseTime(config.workTime.end)!
-    let startWeekday = dayNameToWeekday(config.workDays.start)!
-    let endWeekday = dayNameToWeekday(config.workDays.end)!
-
     let isWorkDay = weekday >= startWeekday && weekday <= endWeekday
+    let isWorkHour = config.workTime.isNightShift ? 
+        (hour >= startHour || hour < endHour) : 
+        (hour >= startHour && hour < endHour)
 
-    let isWorkHour: Bool
-    if startHour < endHour {
-        isWorkHour = hour >= startHour && hour < endHour
-    } else {
-        isWorkHour = hour >= startHour || hour < endHour
-    }
-
-    let shiftType = startHour < endHour ? "day" : "night"
+    let shiftType = config.workTime.isNightShift ? "night" : "day"
     logger.debug("\(shiftType) shift check: weekday=\(weekday), workDays=\(config.workDays.start)-\(config.workDays.end), hour=\(hour), workHours=\(config.workTime.start)-\(config.workTime.end), isWorkDay=\(isWorkDay), isWorkHour=\(isWorkHour)")
 
     return isWorkDay && isWorkHour
@@ -283,24 +328,18 @@ public func getBrowserForURL(_ urlString: String, config: Config, currentDate: D
         return isWorkTime(config: config, currentDate: currentDate) ? config.browsers.work : config.browsers.personal
     }
 
-    // Check URL fragment overrides
+    // Check URL fragment overrides using modern Swift patterns
     if let overrides = config.urls {
         // Check personal overrides first
-        if let personalFragments = overrides.personal {
-            for fragment in personalFragments {
-                if urlString.contains(fragment) {
-                    return config.browsers.personal
-                }
-            }
+        if let personalFragments = overrides.personal,
+           personalFragments.contains(where: urlString.contains) {
+            return config.browsers.personal
         }
 
         // Check work overrides
-        if let workFragments = overrides.work {
-            for fragment in workFragments {
-                if urlString.contains(fragment) {
-                    return config.browsers.work
-                }
-            }
+        if let workFragments = overrides.work,
+           workFragments.contains(where: urlString.contains) {
+            return config.browsers.work
         }
     }
 
@@ -309,14 +348,19 @@ public func getBrowserForURL(_ urlString: String, config: Config, currentDate: D
 
 // MARK: - URL Opening
 
+private let timeFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "HH:mm"
+    return formatter
+}()
+
 public func openURL(_ urlString: String, config: Config, currentDate: Date = Date()) {
     let targetBrowser = getBrowserForURL(urlString, config: config, currentDate: currentDate)
-    let timeString = DateFormatter()
-    timeString.dateFormat = "HH:mm"
-    logger.info("Opening \(urlString) in \(targetBrowser) (\(timeString.string(from: currentDate)))")
+    let timeString = timeFormatter.string(from: currentDate)
+    logger.info("Opening \(urlString) in \(targetBrowser) (\(timeString))")
 
     let task = Process()
-    task.launchPath = "/usr/bin/open"
+    task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
     task.arguments = ["-a", targetBrowser, urlString]
 
     do {
