@@ -84,3 +84,7 @@ The app validates time formats (HH:MM), day names (Mon-Sun), and provides detail
 - App bundle is created at `/Applications/BrowserSchedule.app` with proper Info.plist for URL scheme handling
 - Registration with Launch Services requires the `--set-default` flag after bundle creation
 - Logging can be viewed in Console.app or via `log show` command with subsystem filtering
+
+## Workflow Memories
+
+- Always update the readme
