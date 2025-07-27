@@ -1,5 +1,7 @@
 # 🌐 Browser Schedule
 
+[![CI](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml)
+
 Automatically switches default browser based on time, day, and URL patterns. Built for macOS with Swift and TOML configuration.
 
 ## Quick Start
