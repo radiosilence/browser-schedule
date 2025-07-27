@@ -62,7 +62,7 @@ if CommandLine.arguments.count > 1 {
 
         print("  Logging: enabled (unified logging)")
         print("  Privacy: URLs automatically redacted by macOS unified logging")
-        print("  View logs: log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 1h")
+        print("  View logs: log show --predicate 'subsystem == \"\(bundleIdentifier)\"' --last 1h")
 
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
@@ -91,7 +91,6 @@ if CommandLine.arguments.count > 1 {
         exit(0)
 
     case "--set-default":
-        let bundleId = "com.radiosilence.browser-schedule"
 
         // Register the app bundle first
         let registerTask = Process()
@@ -108,8 +107,8 @@ if CommandLine.arguments.count > 1 {
         }
 
         // Set as default for http and https
-        let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleId as CFString)
-        let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleId as CFString)
+        let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
+        let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
 
         if httpStatus == noErr, httpsStatus == noErr {
             print("Successfully set BrowserSchedule as default browser")

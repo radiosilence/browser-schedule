@@ -1,5 +1,8 @@
 version: "3"
 
+vars:
+  BUNDLE_ID: com.radiosilence.browser-schedule
+
 tasks:
   build:
     desc: Build the Swift application with TOML support
@@ -124,7 +127,7 @@ tasks:
         	<key>CFBundleExecutable</key>
         	<string>browser-schedule</string>
         	<key>CFBundleIdentifier</key>
-        	<string>com.radiosilence.browser-schedule</string>
+        	<string>{{.BUNDLE_ID}}</string>
         	<key>CFBundleName</key>
         	<string>BrowserSchedule</string>
         	<key>CFBundleVersion</key>
@@ -169,7 +172,7 @@ tasks:
         if [ -d "/Applications/BrowserSchedule.app" ]; then
           echo "Status: Installed"
           # Check if registered as URL handler using Launch Services preferences
-          if defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers | grep -A 2 "com.radiosilence.browser-schedule" | grep -q "http"; then
+          if defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers | grep -A 2 "{{.BUNDLE_ID}}" | grep -q "http"; then
             echo "  Default browser: ✓ Registered for HTTP URLs"
           else
             echo "  Default browser: ✗ Not registered as URL handler"
@@ -190,19 +193,19 @@ tasks:
     desc: Show recent logs from unified logging (last 30 minutes)
     silent: true
     cmds:
-      - log show --predicate 'subsystem == "com.radiosilence.browser-schedule"' --last 30m --style compact --info --debug
+      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 30m --style compact --info --debug
 
   logs-realtime:
     desc: Stream real-time logs from unified logging
     silent: true
     cmds:
-      - log stream --predicate 'subsystem == "com.radiosilence.browser-schedule"' --level debug
+      - log stream --predicate 'subsystem == "{{.BUNDLE_ID}}"' --level debug
 
   logs-all:
     desc: Show all logs from unified logging (last 24 hours)
     silent: true
     cmds:
-      - log show --predicate 'subsystem == "com.radiosilence.browser-schedule"' --last 1d --style compact --info --debug
+      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 1d --style compact --info --debug
 
   config:
     desc: Show current config

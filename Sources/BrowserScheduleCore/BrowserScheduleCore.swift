@@ -4,6 +4,10 @@ import Foundation
 import os.log
 import TOMLKit
 
+// MARK: - Constants
+
+public let bundleIdentifier = "com.radiosilence.browser-schedule"
+
 // MARK: - Configuration Types
 
 public struct Config: Codable {
@@ -179,7 +183,7 @@ public struct LocalConfig: Codable {
 
 // MARK: - Logging
 
-public let logger = Logger(subsystem: "com.radiosilence.browser-schedule", category: "main")
+public let logger = Logger(subsystem: bundleIdentifier, category: "main")
 
 
 // MARK: - Time and Day Parsing

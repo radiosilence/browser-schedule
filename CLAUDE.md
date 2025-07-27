@@ -59,7 +59,8 @@ BrowserSchedule is a macOS application that automatically switches your default 
   2. Time/day-based work schedule detection  
   3. Fallback to personal browser
 - **macOS Integration**: URL scheme handler registration via Launch Services
-- **Logging**: Unified logging to macOS Console with subsystem `com.radiosilence.browser-schedule`
+- **Logging**: Unified logging to macOS Console with centralized subsystem identifier
+- **Bundle ID**: Centralized as `bundleIdentifier` constant in BrowserScheduleCore (referenced by logger, app bundle, and task commands)
 
 ### Key Design Patterns
 
