@@ -54,11 +54,8 @@ public struct Config: Codable {
     }
 
     public struct Log: Codable {
-        public let hide_urls: Bool
-        
-        public init(hide_urls: Bool) {
-            self.hide_urls = hide_urls
-        }
+        // Currently empty, but kept for future logging config options
+        public init() {}
     }
 
     enum CodingKeys: String, CodingKey {
@@ -184,13 +181,6 @@ public struct LocalConfig: Codable {
 
 public let logger = Logger(subsystem: "com.radiosilence.browser-schedule", category: "main")
 
-public func shouldHideUrls(_ config: Config) -> Bool {
-    return config.log?.hide_urls ?? false
-}
-
-public func logSafeURL(_ url: String, config: Config) -> String {
-    return shouldHideUrls(config) ? "***" : url
-}
 
 // MARK: - Time and Day Parsing
 
@@ -319,9 +309,7 @@ public func openURL(_ urlString: String, config: Config, currentDate: Date = Dat
     let targetBrowser = getBrowserForURL(urlString, config: config, currentDate: currentDate)
     let timeString = DateFormatter()
     timeString.dateFormat = "HH:mm"
-    let safeURL = logSafeURL(urlString, config: config)
-
-    logger.info("Opening \(safeURL) in \(targetBrowser) (\(timeString.string(from: currentDate)))")
+    logger.info("Opening \(urlString) in \(targetBrowser) (\(timeString.string(from: currentDate)))")
 
     let task = Process()
     task.launchPath = "/usr/bin/open"
@@ -331,11 +319,11 @@ public func openURL(_ urlString: String, config: Config, currentDate: Date = Dat
         try task.run()
         task.waitUntilExit()
         if task.terminationStatus == 0 {
-            logger.debug("Successfully opened \(safeURL) in \(targetBrowser)")
+            logger.debug("Successfully opened \(urlString) in \(targetBrowser)")
         } else {
-            logger.error("Error opening \(safeURL): exit code \(task.terminationStatus)")
+            logger.error("Error opening \(urlString): exit code \(task.terminationStatus)")
         }
     } catch {
-        logger.error("Error opening \(safeURL): \(error)")
+        logger.error("Error opening \(urlString): \(error)")
     }
 }

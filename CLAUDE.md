@@ -34,15 +34,32 @@ BrowserSchedule is a macOS application that automatically switches your default 
 
 ## Architecture
 
-The application consists of a single Swift file (`main.swift`) with these key components:
+### Module Structure
 
-- **Config System**: TOML-based configuration with support for local overrides (`config.local.toml` merges with `config.toml`)
-- **URL Routing Logic**: Three-tier decision making:
+- **`Sources/BrowserScheduleCore/`** - Core logic module (testable, pure Swift)
+  - Config loading, parsing, validation
+  - URL routing logic (work/personal browser selection)
+  - Time/day parsing and work schedule detection
+  - Browser launching via macOS `open` command
+- **`Sources/BrowserSchedule/`** - Executable wrapper
+  - Command-line argument handling
+  - NSApplication delegate for URL scheme handling
+  - App lifecycle management
+- **`Tests/BrowserScheduleTests/`** - Comprehensive test suite (30+ tests)
+  - Config loading/parsing tests
+  - Time/day logic validation
+  - Browser selection scenarios
+  - Edge case handling
+
+### Key Components
+
+- **Config System**: TOML-based with local override support (`config.local.toml` merges with `config.toml`)
+- **URL Routing Logic**: Three-tier decision hierarchy:
   1. URL fragment overrides (highest priority)
-  2. Time/day-based work schedule detection
+  2. Time/day-based work schedule detection  
   3. Fallback to personal browser
-- **macOS Integration**: Registers as URL scheme handler via Launch Services and app bundle creation
-- **Logging**: Optional unified logging to macOS Console with subsystem `com.radiosilence.browser-schedule`
+- **macOS Integration**: URL scheme handler registration via Launch Services
+- **Logging**: Unified logging to macOS Console with subsystem `com.radiosilence.browser-schedule`
 
 ### Key Design Patterns
 
@@ -56,10 +73,14 @@ The application consists of a single Swift file (`main.swift`) with these key co
 ### Development & Testing
 
 - `task build` - Build Swift executable with TOMLKit dependency
-- `task test` - Test with sample URL and show logs
-- `task test-work` - Test during simulated work hours
+- `task test` - Run comprehensive unit test suite (30+ tests)
+- `task test-verbose` - Run tests with verbose output
+- `task test-coverage` - Run tests with code coverage reporting
+- `task test-app` - Integration test with real URL
 - `task config` - Display current parsed configuration and validation status
-- `task logs` - View recent activity via unified logging
+- `task logs` - Recent activity (30 minutes)
+- `task logs-realtime` - Stream real-time logs
+- `task logs-all` - Extended history (24 hours)
 
 ### Installation & Management
 
@@ -83,7 +104,11 @@ The app validates time formats (HH:MM), day names (Mon-Sun), and provides detail
 - Requires macOS 11+ minimum for unified logging and modern Swift features
 - App bundle is created at `/Applications/BrowserSchedule.app` with proper Info.plist for URL scheme handling
 - Registration with Launch Services requires the `--set-default` flag after bundle creation
-- Logging can be viewed in Console.app or via `log show` command with subsystem filtering
+- Logging can be viewed in Console.app or via task commands:
+  - `task logs` - Recent activity (30 minutes)  
+  - `task logs-realtime` - Real-time monitoring
+  - `task logs-all` - Extended history (24 hours)
+- Log privacy: URLs appear as `<private>` due to automatic macOS unified logging privacy protection
 
 ## Workflow Memories
 

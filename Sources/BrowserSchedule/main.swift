@@ -23,7 +23,7 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
 
         for url in urls {
             let urlString = url.absoluteString
-            logger.debug("Processing URL from Swift delegate: \(logSafeURL(urlString, config: self.config))")
+            logger.debug("Processing URL from Swift delegate: \(urlString)")
             openURL(urlString, config: self.config)
         }
 
@@ -61,7 +61,7 @@ if CommandLine.arguments.count > 1 {
         }
 
         print("  Logging: enabled (unified logging)")
-        print("  Hide URLs: \(shouldHideUrls(config) ? "yes" : "no")")
+        print("  Privacy: URLs automatically redacted by macOS unified logging")
         print("  View logs: log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 1h")
 
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
@@ -129,7 +129,7 @@ if CommandLine.arguments.count > 1 {
         // Check if it's a URL
         if arg.hasPrefix("http://") || arg.hasPrefix("https://") {
             let config = Config.loadFromFile()
-            logger.debug("Received URL from macOS via command line: \(logSafeURL(arg, config: config))")
+            logger.debug("Received URL from macOS via command line: \(arg)")
             openURL(arg, config: config)
             exit(0)
         }

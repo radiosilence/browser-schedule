@@ -46,7 +46,6 @@ final class ConfigLoadingTests: XCTestCase {
         end = "Fri"
         
         [log]
-        hide_urls = true
         """
         
         let tomlTable = try TOMLTable(string: tomlString)
@@ -60,7 +59,7 @@ final class ConfigLoadingTests: XCTestCase {
         XCTAssertEqual(config.workTime.end, "18:00")
         XCTAssertEqual(config.workDays.start, "Mon")
         XCTAssertEqual(config.workDays.end, "Fri")
-        XCTAssertEqual(config.log?.hide_urls, true)
+        XCTAssertNotNil(config.log)
     }
     
     func testTOMLDecodingMinimal() throws {
@@ -97,7 +96,6 @@ final class ConfigLoadingTests: XCTestCase {
         personal = ["local.dev"]
         
         [log]
-        hide_urls = false
         """
         
         let tomlTable = try TOMLTable(string: tomlString)
@@ -108,7 +106,7 @@ final class ConfigLoadingTests: XCTestCase {
         XCTAssertNil(localConfig.urls?.work)
         XCTAssertNil(localConfig.workTime)
         XCTAssertNil(localConfig.workDays)
-        XCTAssertEqual(localConfig.log?.hide_urls, false)
+        XCTAssertNotNil(localConfig.log)
     }
     
     func testTOMLDecodingInvalidFormat() {
@@ -238,7 +236,6 @@ final class ConfigLoadingTests: XCTestCase {
         personal = ["reddit.com", "youtube.com", "personal.blog"]
         
         [log]
-        hide_urls = true
         """
         
         let tomlTable = try TOMLTable(string: tomlString)

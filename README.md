@@ -41,7 +41,7 @@ end = "Fri"
 
 # Optional logging configuration
 # [log]
-# hide_urls = true  # Redact URLs in logs as ***
+# (reserved for future logging options)
 ```
 
 ### Advanced Features
@@ -78,15 +78,15 @@ task test-all       # Run both unit and integration tests
 - `task uninstall` - Remove app bundle
 - `task status` - Check installation status
 - `task config` - Show current parsed configuration
-- `task logs` - Show log viewing instructions
+- `task logs` - Show recent logs (last 30 minutes)
+- `task logs-realtime` - Stream real-time logs  
+- `task logs-all` - Show all logs (last 24 hours)
 - `task clean` - Clean build artifacts
 
 ### Viewing Logs
 
 ```sh
-# Recent activity
-log show --predicate 'subsystem == "com.radiosilence.browser-schedule"' --last 30m --style compact
-
-# Real-time monitoring  
-log stream --predicate 'subsystem == "com.radiosilence.browser-schedule"'
+task logs           # Recent activity (30 minutes)
+task logs-realtime  # Real-time monitoring  
+task logs-all       # Extended history (24 hours)
 ```
