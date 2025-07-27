@@ -264,7 +264,7 @@ final class BrowserScheduleTests: XCTestCase {
             urls: Config.OverrideUrls(personal: ["reddit.com"], work: ["work1.com"]),
             workTime: Config.WorkTime(start: "09:00", end: "18:00"),
             workDays: Config.WorkDays(start: "Mon", end: "Fri"),
-            log: Config.Log(enabled: false)
+            log: Config.Log(hide_urls: false)
         )
         
         let localConfig = LocalConfig(
@@ -272,7 +272,7 @@ final class BrowserScheduleTests: XCTestCase {
             urls: Config.OverrideUrls(personal: ["personal.com"], work: ["work2.com"]),
             workTime: Config.WorkTime(start: "10:00", end: "19:00"),
             workDays: nil,
-            log: Config.Log(enabled: true)
+            log: Config.Log(hide_urls: true)
         )
         
         let merged = Config.mergeConfigs(base: baseConfig, local: localConfig)
@@ -298,7 +298,7 @@ final class BrowserScheduleTests: XCTestCase {
         XCTAssertEqual(merged.workDays.end, "Fri")
         
         // Logging should be overridden
-        XCTAssertTrue(merged.log?.enabled ?? false)
+        XCTAssertTrue(merged.log?.hide_urls ?? false)
     }
     
     func testConfigMergingEmptyURLs() {

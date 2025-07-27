@@ -54,10 +54,10 @@ public struct Config: Codable {
     }
 
     public struct Log: Codable {
-        public let enabled: Bool
+        public let hide_urls: Bool
         
-        public init(enabled: Bool) {
-            self.enabled = enabled
+        public init(hide_urls: Bool) {
+            self.hide_urls = hide_urls
         }
     }
 
@@ -92,11 +92,7 @@ public struct Config: Codable {
         // Load main config
         guard let configData = try? String(contentsOf: configPath) else {
             let defaults = Config()
-            if isLoggingEnabled(defaults) {
-                logger.info("Config file not found at \(configPath.path), using defaults")
-            } else {
-                print("Config file not found at \(configPath.path), using defaults")
-            }
+            logger.debug("Config file not found at \(configPath.path), using defaults")
             return defaults
         }
 
@@ -112,43 +108,18 @@ public struct Config: Codable {
                         LocalConfig.self, from: localTomlTable
                     )
                     config = mergeConfigs(base: config, local: localConfig)
-                    if isLoggingEnabled(config) {
-                        logger.info(
-                            "Loaded config from \(configPath.path) and merged \(localConfigPath.path)"
-                        )
-                    } else {
-                        print(
-                            "Loaded config from \(configPath.path) and merged \(localConfigPath.path)"
-                        )
-                    }
+                    logger.debug("Loaded config from \(configPath.path) and merged \(localConfigPath.path)")
                 } catch {
-                    if isLoggingEnabled(config) {
-                        logger.error(
-                            "Error parsing local config file at \(localConfigPath.path): \(error.localizedDescription)"
-                        )
-                    } else {
-                        print(
-                            "Error parsing local config file at \(localConfigPath.path): \(error)")
-                    }
+                    logger.error("Error parsing local config file at \(localConfigPath.path): \(error.localizedDescription)")
                 }
             } else {
-                if isLoggingEnabled(config) {
-                    logger.info("Loaded config from \(configPath.path)")
-                } else {
-                    print("Loaded config from \(configPath.path)")
-                }
+                logger.debug("Loaded config from \(configPath.path)")
             }
 
             return config
         } catch {
             let defaults = Config()
-            if isLoggingEnabled(defaults) {
-                logger.error(
-                    "Error parsing config file at \(configPath.path): \(error.localizedDescription)"
-                )
-            } else {
-                print("Error parsing config file at \(configPath.path): \(error), using defaults")
-            }
+            logger.error("Error parsing config file at \(configPath.path): \(error.localizedDescription), using defaults")
             return defaults
         }
     }
@@ -213,8 +184,12 @@ public struct LocalConfig: Codable {
 
 public let logger = Logger(subsystem: "com.radiosilence.browser-schedule", category: "main")
 
-public func isLoggingEnabled(_ config: Config) -> Bool {
-    return config.log?.enabled ?? false
+public func shouldHideUrls(_ config: Config) -> Bool {
+    return config.log?.hide_urls ?? false
+}
+
+public func logSafeURL(_ url: String, config: Config) -> String {
+    return shouldHideUrls(config) ? "***" : url
 }
 
 // MARK: - Time and Day Parsing
@@ -302,11 +277,7 @@ public func isWorkTime(config: Config, currentDate: Date = Date()) -> Bool {
     }
 
     let shiftType = startHour < endHour ? "day" : "night"
-    let dayCheckMsg =
-        "\(shiftType) shift check: weekday=\(weekday), workDays=\(config.workDays.start)-\(config.workDays.end), hour=\(hour), workHours=\(config.workTime.start)-\(config.workTime.end), isWorkDay=\(isWorkDay), isWorkHour=\(isWorkHour)"
-    if isLoggingEnabled(config) {
-        logger.debug("\(dayCheckMsg)")
-    }
+    logger.debug("\(shiftType) shift check: weekday=\(weekday), workDays=\(config.workDays.start)-\(config.workDays.end), hour=\(hour), workHours=\(config.workTime.start)-\(config.workTime.end), isWorkDay=\(isWorkDay), isWorkHour=\(isWorkHour)")
 
     return isWorkDay && isWorkHour
 }
@@ -348,13 +319,9 @@ public func openURL(_ urlString: String, config: Config, currentDate: Date = Dat
     let targetBrowser = getBrowserForURL(urlString, config: config, currentDate: currentDate)
     let timeString = DateFormatter()
     timeString.dateFormat = "HH:mm"
+    let safeURL = logSafeURL(urlString, config: config)
 
-    let openMsg = "Opening \(urlString) in \(targetBrowser) (\(timeString.string(from: currentDate)))"
-    if isLoggingEnabled(config) {
-        logger.info("\(openMsg)")
-    } else {
-        print(openMsg)
-    }
+    logger.info("Opening \(safeURL) in \(targetBrowser) (\(timeString.string(from: currentDate)))")
 
     let task = Process()
     task.launchPath = "/usr/bin/open"
@@ -364,26 +331,11 @@ public func openURL(_ urlString: String, config: Config, currentDate: Date = Dat
         try task.run()
         task.waitUntilExit()
         if task.terminationStatus == 0 {
-            let successMsg = "Successfully opened \(urlString) in \(targetBrowser)"
-            if isLoggingEnabled(config) {
-                logger.info("\(successMsg)")
-            } else {
-                print(successMsg)
-            }
+            logger.debug("Successfully opened \(safeURL) in \(targetBrowser)")
         } else {
-            let errorMsg = "Error opening \(urlString): exit code \(task.terminationStatus)"
-            if isLoggingEnabled(config) {
-                logger.error("\(errorMsg)")
-            } else {
-                print(errorMsg)
-            }
+            logger.error("Error opening \(safeURL): exit code \(task.terminationStatus)")
         }
     } catch {
-        let errorMsg = "Error opening \(urlString): \(error)"
-        if isLoggingEnabled(config) {
-            logger.error("\(errorMsg)")
-        } else {
-            print(errorMsg)
-        }
+        logger.error("Error opening \(safeURL): \(error)")
     }
 }

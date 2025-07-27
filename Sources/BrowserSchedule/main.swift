@@ -9,35 +9,25 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
     let config = Config.loadFromFile()
 
     func applicationDidFinishLaunching(_: Notification) {
-        if isLoggingEnabled(config) {
-            logger.info("BrowserSchedule app finished launching and ready for URL events")
-        }
+        logger.debug("BrowserSchedule app finished launching and ready for URL events")
 
         // Set up timeout to exit if no URLs received within 5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            if isLoggingEnabled(self.config) {
-                logger.info("Timeout reached (5s), no URLs received, exiting")
-            }
+            logger.debug("Timeout reached (5s), no URLs received, exiting")
             NSApplication.shared.terminate(nil)
         }
     }
 
     func application(_: NSApplication, open urls: [URL]) {
-        if isLoggingEnabled(config) {
-            logger.info("Received \(urls.count) URLs from macOS via Swift delegate")
-        }
+        logger.info("Received \(urls.count) URLs from macOS via Swift delegate")
 
         for url in urls {
             let urlString = url.absoluteString
-            if isLoggingEnabled(config) {
-                logger.info("Processing URL from Swift delegate: \(urlString)")
-            }
-            openURL(urlString, config: config)
+            logger.debug("Processing URL from Swift delegate: \(logSafeURL(urlString, config: self.config))")
+            openURL(urlString, config: self.config)
         }
 
-        if isLoggingEnabled(config) {
-            logger.info("URLs processed via Swift delegate, exiting")
-        }
+        logger.debug("URLs processed via Swift delegate, exiting")
         NSApplication.shared.terminate(nil)
     }
 }
@@ -70,12 +60,9 @@ if CommandLine.arguments.count > 1 {
             }
         }
 
-        print("  Logging: \(isLoggingEnabled(config) ? "enabled (unified logging)" : "disabled")")
-        if isLoggingEnabled(config) {
-            print(
-                "  View logs: log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 1h"
-            )
-        }
+        print("  Logging: enabled (unified logging)")
+        print("  Hide URLs: \(shouldHideUrls(config) ? "yes" : "no")")
+        print("  View logs: log show --predicate 'subsystem == \"com.radiosilence.browser-schedule\"' --last 1h")
 
         let homeDir = FileManager.default.homeDirectoryForCurrentUser
         let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
@@ -142,9 +129,7 @@ if CommandLine.arguments.count > 1 {
         // Check if it's a URL
         if arg.hasPrefix("http://") || arg.hasPrefix("https://") {
             let config = Config.loadFromFile()
-            if isLoggingEnabled(config) {
-                logger.info("Received URL from macOS via command line: \(arg)")
-            }
+            logger.debug("Received URL from macOS via command line: \(logSafeURL(arg, config: config))")
             openURL(arg, config: config)
             exit(0)
         }
@@ -153,9 +138,7 @@ if CommandLine.arguments.count > 1 {
 
 // Default behavior: run as app with URL event handling
 let config = Config.loadFromFile()
-if isLoggingEnabled(config) {
-    logger.info("Starting BrowserSchedule as native Swift app")
-}
+logger.debug("Starting BrowserSchedule as native Swift app")
 
 let app = NSApplication.shared
 let delegate = URLAppDelegate()
