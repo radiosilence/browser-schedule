@@ -38,12 +38,10 @@ public struct Config: Codable {
         public let work: String
         public let personal: String
         
-        public init(work: String, personal: String) {
+        public init(work: String = "Google Chrome", personal: String = "Zen") {
             self.work = work
             self.personal = personal
         }
-        
-        public static let `default` = Browsers(work: "Google Chrome", personal: "Zen")
     }
 
     public struct OverrideUrls: Codable {
@@ -67,12 +65,10 @@ public struct Config: Codable {
             return start >= end
         }
         
-        public init(start: String, end: String) {
+        public init(start: String = "9:00", end: String = "18:00") {
             self.start = start
             self.end = end
         }
-        
-        public static let `default` = WorkTime(start: "9:00", end: "18:00")
     }
 
     public struct WorkDays: Codable {
@@ -82,12 +78,10 @@ public struct Config: Codable {
         public var startWeekday: Int? { dayNameToWeekday(start) }
         public var endWeekday: Int? { dayNameToWeekday(end) }
         
-        public init(start: String, end: String) {
+        public init(start: String = "Mon", end: String = "Fri") {
             self.start = start
             self.end = end
         }
-        
-        public static let `default` = WorkDays(start: "Mon", end: "Fri")
     }
 
     public struct Log: Codable {
@@ -104,10 +98,10 @@ public struct Config: Codable {
     }
 
     public init(
-        browsers: Browsers = .default,
+        browsers: Browsers = Browsers(),
         urls: OverrideUrls? = nil,
-        workTime: WorkTime = .default,
-        workDays: WorkDays = .default,
+        workTime: WorkTime = WorkTime(),
+        workDays: WorkDays = WorkDays(),
         log: Log? = nil
     ) {
         self.browsers = browsers
