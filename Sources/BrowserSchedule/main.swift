@@ -7,18 +7,78 @@ import BrowserScheduleCore
 // Custom Application Delegate
 class URLAppDelegate: NSObject, NSApplicationDelegate {
     let config = Config.loadFromFile()
+    var urlsReceived = false
 
     func applicationDidFinishLaunching(_: Notification) {
         logger.debug("BrowserSchedule app finished launching and ready for URL events")
 
-        // Set up timeout to exit if no URLs received within 5 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-            logger.debug("Timeout reached (5s), no URLs received, exiting")
+        // Set up timeout to determine launch type
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if !self.urlsReceived {
+                // No URLs received in timeout - treat as GUI launch
+                self.handleGUILaunch()
+            } else {
+                // This is URL handling - set timeout to exit
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    logger.debug("Timeout reached (5s) for URL handling, exiting")
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        }
+    }
+    
+    func handleGUILaunch() {
+        logger.debug("BrowserSchedule launched as GUI app")
+        
+        if isDefaultBrowser() {
+            showAlert(
+                title: "BrowserSchedule is Active",
+                message: "BrowserSchedule is already set as your default browser and will automatically route URLs based on your configuration."
+            )
+            NSApplication.shared.terminate(nil)
+        } else {
+            // Register the app bundle first
+            let registerTask = Process()
+            registerTask.executableURL = URL(fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+            registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
+            
+            do {
+                try registerTask.run()
+                registerTask.waitUntilExit()
+                logger.debug("Registered app bundle with Launch Services")
+            } catch {
+                logger.error("Could not register app bundle: \(error)")
+                showAlert(
+                    title: "Registration Failed", 
+                    message: "Could not register BrowserSchedule with the system: \(error)",
+                    style: .critical
+                )
+                NSApplication.shared.terminate(nil)
+                return
+            }
+            
+            // Set as default for http and https
+            let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
+            let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
+            
+            if httpStatus == noErr, httpsStatus == noErr {
+                showAlert(
+                    title: "Setup Complete",
+                    message: "BrowserSchedule has been set as your default browser. URLs will now be routed based on your configuration."
+                )
+            } else {
+                showAlert(
+                    title: "Setup Required",
+                    message: "Please allow BrowserSchedule to be set as your default browser in the system dialog that appears.",
+                    style: .warning
+                )
+            }
             NSApplication.shared.terminate(nil)
         }
     }
 
     func application(_: NSApplication, open urls: [URL]) {
+        self.urlsReceived = true
         logger.info("Received \(urls.count) URLs from macOS via Swift delegate")
 
         for url in urls {
@@ -132,10 +192,24 @@ if CommandLine.arguments.count > 1 {
     }
 }
 
-// Default behavior: run as app with URL event handling
-let config = Config.loadFromFile()
-logger.debug("Starting BrowserSchedule as native Swift app")
+// Default behavior: run as app with URL event handling or setup
+func isDefaultBrowser() -> Bool {
+    let httpHandler = LSCopyDefaultHandlerForURLScheme("http" as CFString)?.takeRetainedValue() as String?
+    let httpsHandler = LSCopyDefaultHandlerForURLScheme("https" as CFString)?.takeRetainedValue() as String?
+    
+    return httpHandler == bundleIdentifier && httpsHandler == bundleIdentifier
+}
 
+func showAlert(title: String, message: String, style: NSAlert.Style = .informational) {
+    let alert = NSAlert()
+    alert.messageText = title
+    alert.informativeText = message
+    alert.alertStyle = style
+    alert.addButton(withTitle: "OK")
+    alert.runModal()
+}
+
+// Default behavior: run as app and handle both GUI launch and URL events
 let app = NSApplication.shared
 let delegate = URLAppDelegate()
 app.delegate = delegate

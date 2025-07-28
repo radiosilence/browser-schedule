@@ -65,9 +65,11 @@ tasks:
   install:
     desc: Install the app bundle as default browser
     silent: true
-    deps: [build, setup-config]
+    deps: [build, create-app-bundle, setup-config]
     cmds:
       - task: create-app-bundle
+      - rm -rf /Applications/BrowserSchedule.app
+      - cp -R ./build/BrowserSchedule.app /Applications/
       - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule --set-default
 
   update:
@@ -76,6 +78,8 @@ tasks:
     deps: [build]
     cmds:
       - task: create-app-bundle
+      - rm -rf /Applications/BrowserSchedule.app
+      - cp -R ./build/BrowserSchedule.app /Applications/
 
   setup-config:
     desc: Create config directory and default config
@@ -112,14 +116,85 @@ tasks:
         config.local.toml
         EOF
 
-  create-app-bundle:
-    desc: Create macOS app bundle
-    internal: true
+  uninstall:
+    desc: Remove the app bundle and reset default browser
     silent: true
     cmds:
-      - mkdir -p /Applications/BrowserSchedule.app/Contents/MacOS
+      - rm -rf /Applications/BrowserSchedule.app
+      - echo "App removed. To reset default browser, go to System Settings > General > Default web browser"
+      - open "x-apple.systempreferences:com.apple.preference.dock"
+
+  status:
+    desc: Show current status
+    silent: true
+    cmds:
       - |
-        cat > /Applications/BrowserSchedule.app/Contents/Info.plist << 'EOF'
+        if [ -d "/Applications/BrowserSchedule.app" ]; then
+          echo "Status: Installed"
+          # Check if registered as URL handler using Launch Services preferences
+          if defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers | grep -A 2 "{{.BUNDLE_ID}}" | grep -q "http"; then
+            echo "  Default browser: ✓ Registered for HTTP URLs"
+          else
+            echo "  Default browser: ✗ Not registered as URL handler"
+          fi
+        else
+          echo "Status: Not installed"
+        fi
+
+  clean:
+    desc: Clean build artifacts and dependencies
+    silent: true
+    cmds:
+      - rm -f browser-schedule-swift
+      - rm -rf build
+      - rm -rf coverage_report
+      - swift package clean
+
+  logs:
+    desc: Show recent logs from unified logging (last 30 minutes)
+    silent: true
+    cmds:
+      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 30m --style compact --info --debug
+
+  logs-realtime:
+    desc: Stream real-time logs from unified logging
+    silent: true
+    cmds:
+      - log stream --predicate 'subsystem == "{{.BUNDLE_ID}}"' --level debug
+
+  logs-all:
+    desc: Show all logs from unified logging (last 24 hours)
+    silent: true
+    cmds:
+      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 1d --style compact --info --debug
+
+  config:
+    desc: Show current config
+    deps: [build]
+    silent: true
+    cmds:
+      - ./browser-schedule-swift --config
+
+  build-dmg:
+    desc: Build DMG with BrowserSchedule.app
+    silent: true
+    deps: [clean, build, setup-config]
+    cmds:
+      - mkdir -p ./build
+      - rm -rf ./build/BrowserSchedule.app
+      - task: create-app-bundle
+      - rm -f ./build/BrowserSchedule.dmg
+      - hdiutil create -volname "BrowserSchedule" -srcfolder ./build/BrowserSchedule.app -ov -format UDZO ./build/BrowserSchedule.dmg
+
+  create-app-bundle:
+    desc: Create app bundle in build directory
+    internal: true
+    silent: true
+    deps: [build]
+    cmds:
+      - mkdir -p ./build/BrowserSchedule.app/Contents/MacOS
+      - |
+        cat > ./build/BrowserSchedule.app/Contents/Info.plist << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -153,63 +228,5 @@ tasks:
         </dict>
         </plist>
         EOF
-      - cp browser-schedule-swift /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule
-      - chmod +x /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule
-
-  uninstall:
-    desc: Remove the app bundle and reset default browser
-    silent: true
-    cmds:
-      - rm -rf /Applications/BrowserSchedule.app
-      - echo "App removed. To reset default browser, go to System Settings > General > Default web browser"
-      - open "x-apple.systempreferences:com.apple.preference.dock"
-
-  status:
-    desc: Show current status
-    silent: true
-    cmds:
-      - |
-        if [ -d "/Applications/BrowserSchedule.app" ]; then
-          echo "Status: Installed"
-          # Check if registered as URL handler using Launch Services preferences
-          if defaults read com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers | grep -A 2 "{{.BUNDLE_ID}}" | grep -q "http"; then
-            echo "  Default browser: ✓ Registered for HTTP URLs"
-          else
-            echo "  Default browser: ✗ Not registered as URL handler"
-          fi
-        else
-          echo "Status: Not installed"
-        fi
-
-  clean:
-    desc: Clean build artifacts and dependencies
-    silent: true
-    cmds:
-      - rm -f browser-schedule-swift
-      - rm -rf coverage_report
-      - swift package clean
-
-  logs:
-    desc: Show recent logs from unified logging (last 30 minutes)
-    silent: true
-    cmds:
-      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 30m --style compact --info --debug
-
-  logs-realtime:
-    desc: Stream real-time logs from unified logging
-    silent: true
-    cmds:
-      - log stream --predicate 'subsystem == "{{.BUNDLE_ID}}"' --level debug
-
-  logs-all:
-    desc: Show all logs from unified logging (last 24 hours)
-    silent: true
-    cmds:
-      - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 1d --style compact --info --debug
-
-  config:
-    desc: Show current config
-    deps: [build]
-    silent: true
-    cmds:
-      - ./browser-schedule-swift --config
+      - cp browser-schedule-swift ./build/BrowserSchedule.app/Contents/MacOS/browser-schedule
+      - chmod +x ./build/BrowserSchedule.app/Contents/MacOS/browser-schedule

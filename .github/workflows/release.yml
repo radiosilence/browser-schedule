@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '5.9'
+
+      - name: Install Task
+        run: |
+          brew install go-task/tap/go-task
+
+      - name: Build DMG
+        run: task build-dmg
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/BrowserSchedule.dmg
+          body: |
+            ## BrowserSchedule ${{ github.ref_name }}
+            
+            Automatic browser switching based on time, day, and URL patterns.
+            
+            ### Installation
+            1. Download `BrowserSchedule.dmg`
+            2. Mount the DMG and drag BrowserSchedule.app to Applications
+            3. Run: `/Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule --set-default`
+            4. Configure via `~/.config/browser-schedule/config.toml`
+            
+            ### Changes
+            See commit history for detailed changes.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

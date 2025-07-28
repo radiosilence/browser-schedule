@@ -1,5 +1,6 @@
 browser-schedule-swift
 .task
 .build/
+build/
 Package.resolved
 .swiftpm
