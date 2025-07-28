@@ -22,14 +22,6 @@ task install
 
 This builds the app, creates the macOS app bundle, and sets up configuration files.
 
-### Security & App Protection
-
-Since BrowserSchedule is not code-signed by a registered Apple developer, macOS will prevent it from running by default. When blocked:
-
-1. Go to **System Settings > Privacy & Security**
-2. Click **"Allow Anyway"** next to the BrowserSchedule security warning
-3. Double-click the app again to complete setup
-
 ### Setting as Default Browser
 
 After installation, **double-click BrowserSchedule.app** in Applications to:
