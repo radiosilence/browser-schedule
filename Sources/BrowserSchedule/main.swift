@@ -1,8 +1,8 @@
 import AppKit
+import BrowserScheduleCore
 import CoreServices
 import Foundation
 import os.log
-import BrowserScheduleCore
 
 // Custom Application Delegate
 class URLAppDelegate: NSObject, NSApplicationDelegate {
@@ -26,22 +26,26 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
             }
         }
     }
-    
+
     func handleGUILaunch() {
         logger.debug("BrowserSchedule launched as GUI app")
-        
+
         if isDefaultBrowser() {
             showAlert(
                 title: "BrowserSchedule is Active",
-                message: "BrowserSchedule is already set as your default browser and will automatically route URLs based on your configuration."
+                message:
+                    "BrowserSchedule is already set as your default browser and will automatically route URLs based on your configuration."
             )
             NSApplication.shared.terminate(nil)
         } else {
             // Register the app bundle first
             let registerTask = Process()
-            registerTask.executableURL = URL(fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+            registerTask.executableURL = URL(
+                fileURLWithPath:
+                    "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+            )
             registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
-            
+
             do {
                 try registerTask.run()
                 registerTask.waitUntilExit()
@@ -49,27 +53,31 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
             } catch {
                 logger.error("Could not register app bundle: \(error)")
                 showAlert(
-                    title: "Registration Failed", 
+                    title: "Registration Failed",
                     message: "Could not register BrowserSchedule with the system: \(error)",
                     style: .critical
                 )
                 NSApplication.shared.terminate(nil)
                 return
             }
-            
+
             // Set as default for http and https
-            let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
-            let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
-            
+            let httpStatus = LSSetDefaultHandlerForURLScheme(
+                "http" as CFString, bundleIdentifier as CFString)
+            let httpsStatus = LSSetDefaultHandlerForURLScheme(
+                "https" as CFString, bundleIdentifier as CFString)
+
             if httpStatus == noErr, httpsStatus == noErr {
                 showAlert(
                     title: "Setup Complete",
-                    message: "BrowserSchedule has been set as your default browser. URLs will now be routed based on your configuration."
+                    message:
+                        "BrowserSchedule has been set as your default browser. URLs will now be routed based on your configuration."
                 )
             } else {
                 showAlert(
                     title: "Setup Required",
-                    message: "Please allow BrowserSchedule to be set as your default browser in the system dialog that appears.",
+                    message:
+                        "Please allow BrowserSchedule to be set as your default browser in the system dialog that appears.",
                     style: .warning
                 )
             }
@@ -152,7 +160,10 @@ if CommandLine.arguments.count > 1 {
 
         // Register the app bundle first
         let registerTask = Process()
-        registerTask.executableURL = URL(fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister")
+        registerTask.executableURL = URL(
+            fileURLWithPath:
+                "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+        )
         registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
 
         do {
@@ -164,8 +175,10 @@ if CommandLine.arguments.count > 1 {
         }
 
         // Set as default for http and https
-        let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
-        let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
+        let httpStatus = LSSetDefaultHandlerForURLScheme(
+            "http" as CFString, bundleIdentifier as CFString)
+        let httpsStatus = LSSetDefaultHandlerForURLScheme(
+            "https" as CFString, bundleIdentifier as CFString)
 
         if httpStatus == noErr, httpsStatus == noErr {
             print("Successfully set BrowserSchedule as default browser")
@@ -195,15 +208,18 @@ if CommandLine.arguments.count > 1 {
 // Default behavior: run as app with URL event handling or setup
 func isDefaultBrowser() -> Bool {
     let workspace = NSWorkspace.shared
-    
+
     guard let httpURL = URL(string: "http://example.com"),
-          let httpsURL = URL(string: "https://example.com") else {
+        let httpsURL = URL(string: "https://example.com")
+    else {
         return false
     }
-    
-    let httpHandler = workspace.urlForApplication(toOpen: httpURL)?.lastPathComponent.replacingOccurrences(of: ".app", with: "")
-    let httpsHandler = workspace.urlForApplication(toOpen: httpsURL)?.lastPathComponent.replacingOccurrences(of: ".app", with: "")
-    
+
+    let httpHandler = workspace.urlForApplication(toOpen: httpURL)?.lastPathComponent
+        .replacingOccurrences(of: ".app", with: "")
+    let httpsHandler = workspace.urlForApplication(toOpen: httpsURL)?.lastPathComponent
+        .replacingOccurrences(of: ".app", with: "")
+
     return httpHandler == "BrowserSchedule" && httpsHandler == "BrowserSchedule"
 }
 
@@ -220,5 +236,5 @@ func showAlert(title: String, message: String, style: NSAlert.Style = .informati
 let app = NSApplication.shared
 let delegate = URLAppDelegate()
 app.delegate = delegate
-app.setActivationPolicy(.prohibited) // Background app
+app.setActivationPolicy(.prohibited)  // Background app
 app.run()
