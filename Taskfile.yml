@@ -232,15 +232,27 @@ tasks:
       - chmod +x ./build/BrowserSchedule.app/Contents/MacOS/browser-schedule
 
   release:
-    desc: Create and push a semantic version release (usage: task release -- major|minor|patch)
+    desc: "Create and push a semantic version release (usage: task release -- major|minor|patch)"
     silent: true
     deps: [clean, build-dmg]
     cmds:
       - |
         VERSION_TYPE="${1:-patch}"
-        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0")
+        CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
         
+        if [ -z "$CURRENT_TAG" ]; then
+          CURRENT_VERSION="0.0.0"
+        else
+          CURRENT_VERSION=$(echo "$CURRENT_TAG" | sed 's/^v//')
+        fi
+        
+        echo "Current version: $CURRENT_VERSION"
         IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+        
+        # Ensure components are numbers
+        MAJOR=${MAJOR:-0}
+        MINOR=${MINOR:-0}
+        PATCH=${PATCH:-0}
         
         case "$VERSION_TYPE" in
           major)
