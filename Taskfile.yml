@@ -163,48 +163,6 @@ tasks:
     cmds:
       - log show --predicate 'subsystem == "{{.BUNDLE_ID}}"' --last 1d --style compact --info --debug
 
-  install-completions:
-    desc: Install shell completions for current shell
-    silent: true
-    deps: [build]
-    cmds:
-      - |
-        SHELL_NAME=$(basename "$SHELL")
-        case "$SHELL_NAME" in
-          fish)
-            mkdir -p ~/.config/fish/completions
-            ./.build/release/BrowserSchedule --generate-completion-script fish > ~/.config/fish/completions/browser-schedule.fish
-            echo "Fish completions installed to ~/.config/fish/completions/browser-schedule.fish"
-            ;;
-          zsh)
-            if [ -d ~/.oh-my-zsh/completions ]; then
-              ./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.oh-my-zsh/completions/_browser-schedule
-              echo "Zsh completions installed to ~/.oh-my-zsh/completions/_browser-schedule"
-            else
-              mkdir -p ~/.zsh/completion
-              ./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.zsh/completion/_browser-schedule
-              echo "Zsh completions installed to ~/.zsh/completion/_browser-schedule"
-              echo "Add 'fpath=(~/.zsh/completion \$fpath)' and 'autoload -U compinit && compinit' to your ~/.zshrc"
-            fi
-            ;;
-          bash)
-            if [ -d /usr/local/etc/bash_completion.d ]; then
-              ./.build/release/BrowserSchedule --generate-completion-script bash > /usr/local/etc/bash_completion.d/browser-schedule
-              echo "Bash completions installed to /usr/local/etc/bash_completion.d/browser-schedule"
-            else
-              mkdir -p ~/.bash_completions
-              ./.build/release/BrowserSchedule --generate-completion-script bash > ~/.bash_completions/browser-schedule
-              echo "Bash completions installed to ~/.bash_completions/browser-schedule"
-              echo "Add 'source ~/.bash_completions/browser-schedule' to your ~/.bash_profile or ~/.bashrc"
-            fi
-            ;;
-          *)
-            echo "Unsupported shell: $SHELL_NAME"
-            echo "Supported shells: fish, zsh, bash"
-            exit 1
-            ;;
-        esac
-
   config:
     desc: Show current config
     deps: [build]

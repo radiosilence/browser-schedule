@@ -109,12 +109,9 @@ task test-all       # Run both unit and integration tests
 BrowserSchedule includes built-in shell completion support for bash, zsh, and fish:
 
 ```sh
-# Install completions for your current shell
-task install-completions
-
 # Or generate manually for any shell
 ./.build/release/BrowserSchedule --generate-completion-script fish > ~/.config/fish/completions/browser-schedule.fish
-./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.zsh/completion/_browser-schedule  
+./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.zsh/completion/_browser-schedule
 ./.build/release/BrowserSchedule --generate-completion-script bash > ~/.bash_completions/browser-schedule
 ```
 
