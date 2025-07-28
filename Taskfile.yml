@@ -233,7 +233,9 @@ tasks:
     silent: true
     cmds:
       - |
-        VERSION_TYPE="${1:-patch}"
+        CLI_ARGS="{{.CLI_ARGS}}"
+        VERSION_TYPE=$(echo "$CLI_ARGS" | awk '{print $1}')
+        VERSION_TYPE="${VERSION_TYPE:-patch}"
         CURRENT_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
         if [ -z "$CURRENT_TAG" ]; then
