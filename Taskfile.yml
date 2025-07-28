@@ -14,6 +14,7 @@ tasks:
       - Package.swift
     generates:
       - .build/release/BrowserSchedule
+      - .build/release/BrowserScheduleCLI
 
   test:
     desc: Run all unit tests
@@ -69,7 +70,7 @@ tasks:
       - task: create-app-bundle
       - rm -rf /Applications/BrowserSchedule.app
       - cp -R ./.build/pkg/BrowserSchedule.app /Applications/
-      - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule set-default
+      # - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule set-default
 
   update:
     desc: Update the app bundle with current config
@@ -137,11 +138,24 @@ tasks:
           echo "Status: Not installed"
         fi
 
+  completions:
+    desc: "Generate shell completions (usage: task completions -- fish|zsh|bash)"
+    silent: true
+    deps: [build]
+    cmds:
+      - ./.build/release/BrowserScheduleCLI --generate-completion-script {{.CLI_ARGS}}
+
+  set-default:
+    desc: Set BrowserSchedule as the default browser
+    silent: true
+    deps: [build]
+    cmds:
+      - ./.build/release/BrowserScheduleCLI set-default
+
   clean:
     desc: Clean build artifacts and dependencies
     silent: true
     cmds:
-      - rm -rf build
       - rm -rf coverage_report
       - swift package clean
 
@@ -168,7 +182,7 @@ tasks:
     deps: [build]
     silent: true
     cmds:
-      - ./.build/release/BrowserSchedule config
+      - ./.build/release/BrowserScheduleCLI config
 
   build-dmg:
     desc: Build DMG with BrowserSchedule.app
@@ -224,7 +238,9 @@ tasks:
         </plist>
         EOF
       - cp .build/release/BrowserSchedule ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
+      - cp .build/release/BrowserScheduleCLI ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
+      - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
 
   release:
     desc: "Create and push a semantic version release (usage: task release -- major|minor|patch)"

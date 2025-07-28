@@ -98,10 +98,11 @@ task test-all       # Run both unit and integration tests
 - `task uninstall` - Remove app bundle
 - `task status` - Check installation status
 - `task config` - Show current parsed configuration
+- `task set-default` - Set BrowserSchedule as the default browser
+- `task completions -- <shell>` - Generate shell completions (fish/zsh/bash)
 - `task logs` - Show recent logs (last 30 minutes)
 - `task logs-realtime` - Stream real-time logs
 - `task logs-all` - Show all logs (last 24 hours)
-- `task install-completions` - Install shell completions for your current shell
 - `task clean` - Clean build artifacts
 
 ### Shell Completions
@@ -110,9 +111,9 @@ BrowserSchedule includes built-in shell completion support for bash, zsh, and fi
 
 ```sh
 # Or generate manually for any shell
-./.build/release/BrowserSchedule --generate-completion-script fish > ~/.config/fish/completions/browser-schedule.fish
-./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.zsh/completion/_browser-schedule
-./.build/release/BrowserSchedule --generate-completion-script bash > ~/.bash_completions/browser-schedule
+task completions -- fish > ~/.config/fish/completions/browser-schedule.fish
+task completions -- zsh > ~/.zsh/completion/_browser-schedule
+task completions -- bash > ~/.bash_completions/browser-schedule
 ```
 
 After installation, you'll get tab completion for subcommands (`config`, `set-default`) and help flags.

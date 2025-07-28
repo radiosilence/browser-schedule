@@ -16,8 +16,13 @@ let package = Package(
         ),
         .executableTarget(
             name: "BrowserSchedule",
-            dependencies: ["BrowserScheduleCore", .product(name: "ArgumentParser", package: "swift-argument-parser")],
+            dependencies: ["BrowserScheduleCore"],
             path: "Sources/BrowserSchedule"
+        ),
+        .executableTarget(
+            name: "BrowserScheduleCLI", 
+            dependencies: ["BrowserScheduleCore", .product(name: "ArgumentParser", package: "swift-argument-parser")],
+            path: "Sources/BrowserScheduleCLI"
         ),
         .testTarget(
             name: "BrowserScheduleTests",

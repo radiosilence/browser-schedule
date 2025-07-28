@@ -382,3 +382,67 @@ public func openURL(_ urlString: String, config: Config, currentDate: Date = Dat
         logger.error("Error opening \(urlString): \(error)")
     }
 }
+
+// MARK: - Browser Setup & Registration
+
+public func isDefaultBrowser() -> Bool {
+    let workspace = NSWorkspace.shared
+
+    guard let httpURL = URL(string: "http://example.com"),
+        let httpsURL = URL(string: "https://example.com")
+    else {
+        return false
+    }
+
+    let httpHandler = workspace.urlForApplication(toOpen: httpURL)?.lastPathComponent
+        .replacingOccurrences(of: ".app", with: "")
+    let httpsHandler = workspace.urlForApplication(toOpen: httpsURL)?.lastPathComponent
+        .replacingOccurrences(of: ".app", with: "")
+
+    return httpHandler == "BrowserSchedule" && httpsHandler == "BrowserSchedule"
+}
+
+public enum SetupError: LocalizedError {
+    case registrationFailed(String)
+    case setDefaultFailed(OSStatus, OSStatus)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .registrationFailed(let error):
+            return "Failed to register app bundle: \(error)"
+        case .setDefaultFailed(let httpStatus, let httpsStatus):
+            return "Failed to set as default browser (HTTP: \(httpStatus), HTTPS: \(httpsStatus))"
+        }
+    }
+}
+
+public func registerAppBundle() throws {
+    let registerTask = Process()
+    registerTask.executableURL = URL(
+        fileURLWithPath: "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+    )
+    registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
+
+    do {
+        try registerTask.run()
+        registerTask.waitUntilExit()
+        if registerTask.terminationStatus != 0 {
+            throw SetupError.registrationFailed("lsregister exit code: \(registerTask.terminationStatus)")
+        }
+        logger.debug("Registered app bundle with Launch Services")
+    } catch {
+        logger.error("Could not register app bundle: \(error)")
+        throw SetupError.registrationFailed(error.localizedDescription)
+    }
+}
+
+public func setAsDefaultBrowser() throws {
+    let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
+    let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
+
+    if httpStatus != noErr || httpsStatus != noErr {
+        throw SetupError.setDefaultFailed(httpStatus, httpsStatus)
+    }
+    
+    logger.debug("Successfully set as default browser")
+}

@@ -2,3 +2,5 @@
 .build/
 Package.resolved
 .swiftpm
+.ruby-lsp
+.claude
