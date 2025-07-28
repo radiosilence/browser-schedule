@@ -68,7 +68,7 @@ tasks:
     cmds:
       - task: create-app-bundle
       - rm -rf /Applications/BrowserSchedule.app
-      - cp -R ./build/BrowserSchedule.app /Applications/
+      - cp -R ./.build/pkg/BrowserSchedule.app /Applications/
       - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule --set-default
 
   update:
@@ -78,7 +78,7 @@ tasks:
     cmds:
       - task: create-app-bundle
       - rm -rf /Applications/BrowserSchedule.app
-      - cp -R ./build/BrowserSchedule.app /Applications/
+      - cp -R ./.build/pkg/BrowserSchedule.app /Applications/
 
   setup-config:
     desc: Create config directory and default config
@@ -217,11 +217,11 @@ tasks:
     silent: true
     deps: [clean, build, setup-config]
     cmds:
-      - mkdir -p ./build
-      - rm -rf ./build/BrowserSchedule.app
+      - mkdir -p ./.build/pkg
+      - rm -rf ./.build/pkg/BrowserSchedule.app
       - task: create-app-bundle
-      - rm -f ./build/BrowserSchedule.dmg
-      - hdiutil create -volname "BrowserSchedule" -srcfolder ./build/BrowserSchedule.app -ov -format UDZO ./build/BrowserSchedule.dmg
+      - rm -f ./.build/pkg/BrowserSchedule.dmg
+      - hdiutil create -volname "BrowserSchedule" -srcfolder ./.build/pkg/BrowserSchedule.app -ov -format UDZO ./.build/pkg/BrowserSchedule.dmg
 
   create-app-bundle:
     desc: Create app bundle in build directory
@@ -229,9 +229,9 @@ tasks:
     silent: true
     deps: [build]
     cmds:
-      - mkdir -p ./build/BrowserSchedule.app/Contents/MacOS
+      - mkdir -p ./.build/pkg/BrowserSchedule.app/Contents/MacOS
       - |
-        cat > ./build/BrowserSchedule.app/Contents/Info.plist << 'EOF'
+        cat > ./.build/pkg/BrowserSchedule.app/Contents/Info.plist << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -265,8 +265,8 @@ tasks:
         </dict>
         </plist>
         EOF
-      - cp .build/release/BrowserSchedule ./build/BrowserSchedule.app/Contents/MacOS/browser-schedule
-      - chmod +x ./build/BrowserSchedule.app/Contents/MacOS/browser-schedule
+      - cp .build/release/BrowserSchedule ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
+      - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
 
   release:
     desc: "Create and push a semantic version release (usage: task release -- major|minor|patch)"
