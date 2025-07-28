@@ -2,7 +2,7 @@ import AppKit
 import CoreServices
 import Foundation
 import TOMLKit
-import os.log
+@preconcurrency import os.log
 
 // MARK: - Constants
 

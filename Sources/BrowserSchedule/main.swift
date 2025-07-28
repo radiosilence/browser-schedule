@@ -1,4 +1,4 @@
-import AppKit
+@preconcurrency import AppKit
 import BrowserScheduleCore
 import CoreServices
 import Foundation
@@ -27,7 +27,7 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    func handleGUILaunch() {
+    @MainActor func handleGUILaunch() {
         logger.debug("BrowserSchedule launched as GUI app")
 
         if isDefaultBrowser() {
@@ -223,7 +223,7 @@ func isDefaultBrowser() -> Bool {
     return httpHandler == "BrowserSchedule" && httpsHandler == "BrowserSchedule"
 }
 
-func showAlert(title: String, message: String, style: NSAlert.Style = .informational) {
+@MainActor func showAlert(title: String, message: String, style: NSAlert.Style = .informational) {
     let alert = NSAlert()
     alert.messageText = title
     alert.informativeText = message
