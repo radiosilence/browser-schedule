@@ -94,7 +94,7 @@ public struct Config: Codable {
         browsers: Browsers = Browsers(),
         urls: OverrideUrls? = nil,
         workTime: WorkTime = WorkTime(),
-        workDays: WorkDays = WorkDays(),
+        workDays: WorkDays = WorkDays()
     ) {
         self.browsers = browsers
         self.urls = urls
@@ -208,7 +208,7 @@ public struct Config: Codable {
             browsers: local.browsers ?? base.browsers,
             urls: mergedOverrides,
             workTime: local.workTime ?? base.workTime,
-            workDays: local.workDays ?? base.workDays,
+            workDays: local.workDays ?? base.workDays
         )
     }
 }
