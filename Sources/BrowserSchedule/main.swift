@@ -194,10 +194,17 @@ if CommandLine.arguments.count > 1 {
 
 // Default behavior: run as app with URL event handling or setup
 func isDefaultBrowser() -> Bool {
-    let httpHandler = LSCopyDefaultHandlerForURLScheme("http" as CFString)?.takeRetainedValue() as String?
-    let httpsHandler = LSCopyDefaultHandlerForURLScheme("https" as CFString)?.takeRetainedValue() as String?
+    let workspace = NSWorkspace.shared
     
-    return httpHandler == bundleIdentifier && httpsHandler == bundleIdentifier
+    guard let httpURL = URL(string: "http://example.com"),
+          let httpsURL = URL(string: "https://example.com") else {
+        return false
+    }
+    
+    let httpHandler = workspace.urlForApplication(toOpen: httpURL)?.lastPathComponent.replacingOccurrences(of: ".app", with: "")
+    let httpsHandler = workspace.urlForApplication(toOpen: httpsURL)?.lastPathComponent.replacingOccurrences(of: ".app", with: "")
+    
+    return httpHandler == "BrowserSchedule" && httpsHandler == "BrowserSchedule"
 }
 
 func showAlert(title: String, message: String, style: NSAlert.Style = .informational) {
