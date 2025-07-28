@@ -69,7 +69,7 @@ tasks:
       - task: create-app-bundle
       - rm -rf /Applications/BrowserSchedule.app
       - cp -R ./.build/pkg/BrowserSchedule.app /Applications/
-      - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule --set-default
+      - /Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule set-default
 
   update:
     desc: Update the app bundle with current config
