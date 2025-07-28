@@ -33,6 +33,7 @@ Since BrowserSchedule is not code-signed by a registered Apple developer, macOS 
 ### Setting as Default Browser
 
 After installation, **double-click BrowserSchedule.app** in Applications to:
+
 - Set it as your default browser (if not already set)
 - See confirmation that it's active and routing URLs correctly
 
@@ -43,7 +44,7 @@ The app will show a dialog confirming the setup or current status.
 BrowserSchedule registers as your default browser and routes URLs to work (Chrome) or personal (Zen) browsers based on:
 
 1. **URL fragment overrides** (highest priority)
-2. **Time/day-based work schedule detection** 
+2. **Time/day-based work schedule detection**
 3. **Fallback to personal browser**
 
 ## Configuration
@@ -66,10 +67,6 @@ end = "18:00"
 [work_days]
 start = "Mon"
 end = "Fri"
-
-# Optional logging configuration
-# [log]
-# (reserved for future logging options)
 ```
 
 ### Features
@@ -104,13 +101,13 @@ task test-all       # Run both unit and integration tests
 - `task build` - Build Swift executable
 - `task build-dmg` - Build distributable DMG in `./build/BrowserSchedule.dmg`
 - `task release -- patch|minor|major` - Create and push semantic version release
-- `task install` - Install app bundle and register as default browser  
+- `task install` - Install app bundle and register as default browser
 - `task update` - Update existing app bundle
 - `task uninstall` - Remove app bundle
 - `task status` - Check installation status
 - `task config` - Show current parsed configuration
 - `task logs` - Show recent logs (last 30 minutes)
-- `task logs-realtime` - Stream real-time logs  
+- `task logs-realtime` - Stream real-time logs
 - `task logs-all` - Show all logs (last 24 hours)
 - `task clean` - Clean build artifacts
 
@@ -118,6 +115,6 @@ task test-all       # Run both unit and integration tests
 
 ```sh
 task logs           # Recent activity (30 minutes)
-task logs-realtime  # Real-time monitoring  
+task logs-realtime  # Real-time monitoring
 task logs-all       # Extended history (24 hours)
 ```

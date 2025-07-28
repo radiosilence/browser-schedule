@@ -105,9 +105,6 @@ tasks:
         [work_days]
         start = "Mon"
         end = "Fri"
-
-        # [log]
-        # (reserved for future logging options)
         EOF
         fi
       - |
