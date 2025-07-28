@@ -34,10 +34,11 @@ jobs:
             Automatic browser switching based on time, day, and URL patterns.
 
             ### Installation
-            1. Download `BrowserSchedule.dmg`
+            1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
             2. Mount the DMG and drag BrowserSchedule.app to Applications
-            3. Run: `/Applications/BrowserSchedule.app/Contents/MacOS/browser-schedule --set-default`
-            4. Configure via `~/.config/browser-schedule/config.toml`
+            3. Remove quarantine protection: `xattr -d com.apple.quarantine /Applications/BrowserSchedule.app`
+            4. **Double-click the app** to set it as your default browser
+            5. Configure via `~/.config/browser-schedule/config.toml`
 
             ### Changes
             See commit history for detailed changes.
