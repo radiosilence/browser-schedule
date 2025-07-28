@@ -1,4 +1,5 @@
 @preconcurrency import AppKit
+import ArgumentParser
 import BrowserScheduleCore
 import CoreServices
 import Foundation
@@ -100,107 +101,144 @@ class URLAppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-// Main execution
-if CommandLine.arguments.count > 1 {
-    let arg = CommandLine.arguments[1]
+// ArgumentParser commands
+struct BrowserSchedule: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Automatically switch default browser based on schedule and URL patterns",
+        subcommands: [Config.self, SetDefault.self, Run.self],
+        defaultSubcommand: Run.self
+    )
+}
 
-    // Handle command line arguments (--config, --install, etc.)
-    switch arg {
-    case "--config":
-        let config = Config.loadFromFile()
-        let validation = ConfigValidation.validate(config)
-
-        print("Current configuration:")
-        print("  Work browser: \(config.browsers.work)")
-        print("  Personal browser: \(config.browsers.personal)")
-        let shiftType = config.workTime.isNightShift ? " (night shift)" : ""
-        print("  Work hours: \(config.workTime.start)-\(config.workTime.end)\(shiftType)")
-        print("  Work days: \(config.workDays.start)-\(config.workDays.end)")
-        // Show merged domain overrides
-        if let overrides = config.urls {
-            if let personal = overrides.personal, !personal.isEmpty {
-                print("  Personal overrides: \(personal.joined(separator: ", "))")
-            }
-            if let work = overrides.work, !work.isEmpty {
-                print("  Work overrides: \(work.joined(separator: ", "))")
-            }
-        }
-
-        print("  Logging: enabled (unified logging)")
-        print("  Privacy: URLs automatically redacted by macOS unified logging")
-        print("  View logs: log show --predicate 'subsystem == \"\(bundleIdentifier)\"' --last 1h")
-
-        let homeDir = FileManager.default.homeDirectoryForCurrentUser
-        let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
-        let localConfigPath = homeDir.appendingPathComponent(
-            ".config/browser-schedule/config.local.toml")
-        print("  Config file: \(configPath.path)")
-        if FileManager.default.fileExists(atPath: localConfigPath.path) {
-            print("  Local config: \(localConfigPath.path) (merged)")
-        }
-
-        if !validation.isValid {
-            print("  ⚠️  Configuration errors:")
-            for error in validation.errors {
-                print("     - \(error)")
-            }
-            print(
-                "  Current: Using personal browser (\(config.browsers.personal)) due to config errors"
-            )
-        } else {
-            if isWorkTime(config: config) {
-                print("  Current: Work time - using \(config.browsers.work)")
-            } else {
-                print("  Current: Personal time - using \(config.browsers.personal)")
-            }
-        }
-        exit(0)
-
-    case "--set-default":
-
-        // Register the app bundle first
-        let registerTask = Process()
-        registerTask.executableURL = URL(
-            fileURLWithPath:
-                "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+extension BrowserSchedule {
+    struct Config: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Display current configuration and status"
         )
-        registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
+        
+        func run() throws {
+            let config = BrowserScheduleCore.Config.loadFromFile()
+            let validation = ConfigValidation.validate(config)
 
-        do {
-            try registerTask.run()
-            registerTask.waitUntilExit()
-            print("Registered app bundle with Launch Services")
-        } catch {
-            print("Warning: Could not register app bundle: \(error)")
+            print("Current configuration:")
+            print("  Work browser: \(config.browsers.work)")
+            print("  Personal browser: \(config.browsers.personal)")
+            let shiftType = config.workTime.isNightShift ? " (night shift)" : ""
+            print("  Work hours: \(config.workTime.start)-\(config.workTime.end)\(shiftType)")
+            print("  Work days: \(config.workDays.start)-\(config.workDays.end)")
+            // Show merged domain overrides
+            if let overrides = config.urls {
+                if let personal = overrides.personal, !personal.isEmpty {
+                    print("  Personal overrides: \(personal.joined(separator: ", "))")
+                }
+                if let work = overrides.work, !work.isEmpty {
+                    print("  Work overrides: \(work.joined(separator: ", "))")
+                }
+            }
+
+            print("  Logging: enabled (unified logging)")
+            print("  Privacy: URLs automatically redacted by macOS unified logging")
+            print("  View logs: log show --predicate 'subsystem == \"\(bundleIdentifier)\"' --last 1h")
+
+            let homeDir = FileManager.default.homeDirectoryForCurrentUser
+            let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
+            let localConfigPath = homeDir.appendingPathComponent(
+                ".config/browser-schedule/config.local.toml")
+            print("  Config file: \(configPath.path)")
+            if FileManager.default.fileExists(atPath: localConfigPath.path) {
+                print("  Local config: \(localConfigPath.path) (merged)")
+            }
+
+            if !validation.isValid {
+                print("  ⚠️  Configuration errors:")
+                for error in validation.errors {
+                    print("     - \(error)")
+                }
+                print(
+                    "  Current: Using personal browser (\(config.browsers.personal)) due to config errors"
+                )
+            } else {
+                if isWorkTime(config: config) {
+                    print("  Current: Work time - using \(config.browsers.work)")
+                } else {
+                    print("  Current: Personal time - using \(config.browsers.personal)")
+                }
+            }
         }
+    }
+    
+    struct SetDefault: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            commandName: "set-default",
+            abstract: "Set BrowserSchedule as the default browser"
+        )
+        
+        func run() throws {
+            // Register the app bundle first
+            let registerTask = Process()
+            registerTask.executableURL = URL(
+                fileURLWithPath:
+                    "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+            )
+            registerTask.arguments = ["-f", "/Applications/BrowserSchedule.app"]
 
-        // Set as default for http and https
-        let httpStatus = LSSetDefaultHandlerForURLScheme(
-            "http" as CFString, bundleIdentifier as CFString)
-        let httpsStatus = LSSetDefaultHandlerForURLScheme(
-            "https" as CFString, bundleIdentifier as CFString)
+            do {
+                try registerTask.run()
+                registerTask.waitUntilExit()
+                print("Registered app bundle with Launch Services")
+            } catch {
+                print("Warning: Could not register app bundle: \(error)")
+            }
 
-        if httpStatus == noErr, httpsStatus == noErr {
-            print("Successfully set BrowserSchedule as default browser")
-        } else {
-            print("Setting default browser requires user consent.")
-            print("If prompted, please allow BrowserSchedule to be set as default browser.")
-            print("HTTP handler status: \(httpStatus), HTTPS handler status: \(httpsStatus)")
+            // Set as default for http and https
+            let httpStatus = LSSetDefaultHandlerForURLScheme(
+                "http" as CFString, bundleIdentifier as CFString)
+            let httpsStatus = LSSetDefaultHandlerForURLScheme(
+                "https" as CFString, bundleIdentifier as CFString)
+
+            if httpStatus == noErr, httpsStatus == noErr {
+                print("Successfully set BrowserSchedule as default browser")
+            } else {
+                print("Setting default browser requires user consent.")
+                print("If prompted, please allow BrowserSchedule to be set as default browser.")
+                print("HTTP handler status: \(httpStatus), HTTPS handler status: \(httpsStatus)")
+            }
         }
-
-        exit(0)
-
-    case "--install", "--update":
-        print("Use 'task install' or 'task update' to manage app bundle")
-        exit(1)
-
-    default:
-        // Check if it's a URL
-        if arg.hasPrefix("http://") || arg.hasPrefix("https://") {
-            let config = Config.loadFromFile()
-            logger.debug("Received URL from macOS via command line: \(arg)")
-            openURL(arg, config: config)
-            exit(0)
+    }
+    
+    struct Run: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "Run as background app (default mode)"
+        )
+        
+        @Argument(help: "URL to open directly")
+        var url: String? = nil
+        
+        func run() throws {
+            // Handle direct URL argument
+            if let urlString = url {
+                if urlString.hasPrefix("http://") || urlString.hasPrefix("https://") {
+                    let config = BrowserScheduleCore.Config.loadFromFile()
+                    logger.debug("Received URL from macOS via command line: \(urlString)")
+                    openURL(urlString, config: config)
+                    return
+                } else if urlString == "--install" || urlString == "--update" {
+                    print("Use 'task install' or 'task update' to manage app bundle")
+                    throw ExitCode.failure
+                }
+            }
+            
+            // Default behavior: run as app and handle both GUI launch and URL events
+            Task { @MainActor in
+                let app = NSApplication.shared
+                let delegate = URLAppDelegate()
+                app.delegate = delegate
+                app.setActivationPolicy(.prohibited)  // Background app
+                app.run()
+            }
+            
+            // Keep the main thread alive
+            RunLoop.main.run()
         }
     }
 }
@@ -232,9 +270,5 @@ func isDefaultBrowser() -> Bool {
     alert.runModal()
 }
 
-// Default behavior: run as app and handle both GUI launch and URL events
-let app = NSApplication.shared
-let delegate = URLAppDelegate()
-app.delegate = delegate
-app.setActivationPolicy(.prohibited)  // Background app
-app.run()
+// Main entry point
+BrowserSchedule.main()

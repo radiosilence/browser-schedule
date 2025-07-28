@@ -101,7 +101,24 @@ task test-all       # Run both unit and integration tests
 - `task logs` - Show recent logs (last 30 minutes)
 - `task logs-realtime` - Stream real-time logs
 - `task logs-all` - Show all logs (last 24 hours)
+- `task install-completions` - Install shell completions for your current shell
 - `task clean` - Clean build artifacts
+
+### Shell Completions
+
+BrowserSchedule includes built-in shell completion support for bash, zsh, and fish:
+
+```sh
+# Install completions for your current shell
+task install-completions
+
+# Or generate manually for any shell
+./.build/release/BrowserSchedule --generate-completion-script fish > ~/.config/fish/completions/browser-schedule.fish
+./.build/release/BrowserSchedule --generate-completion-script zsh > ~/.zsh/completion/_browser-schedule  
+./.build/release/BrowserSchedule --generate-completion-script bash > ~/.bash_completions/browser-schedule
+```
+
+After installation, you'll get tab completion for subcommands (`config`, `set-default`) and help flags.
 
 ### Viewing Logs
 
