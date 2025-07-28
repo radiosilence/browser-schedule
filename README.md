@@ -6,27 +6,15 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 
 ## Installation
 
-### Option 1: Homebrew (Recommended)
-
-```sh
-# Add the tap
-brew tap radiosilence/tap
-
-# Install with quarantine bypass (recommended)
-brew install --no-quarantine browser-schedule
-
-# OR install normally (may require manual security approval)
-brew install browser-schedule
-```
-
-### Option 2: Direct Download
+### Option 1: Direct Download
 
 1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
 2. Mount the DMG and drag BrowserSchedule.app to Applications
-3. **Double-click the app** to set it as your default browser
-4. Configure via `~/.config/browser-schedule/config.toml`
+3. Remove quarantine protection: `xattr -d com.apple.quarantine /Applications/BrowserSchedule.app`
+4. **Double-click the app** to set it as your default browser
+5. Configure via `~/.config/browser-schedule/config.toml`
 
-### Option 3: Build from Source
+### Option 2: Build from Source (Recommended - Safer)
 
 ```sh
 task install
@@ -36,24 +24,11 @@ This builds the app, creates the macOS app bundle, and sets up configuration fil
 
 ### Security & App Protection
 
-Since BrowserSchedule is not code-signed by a registered Apple developer, macOS will prevent it from running by default. You have several options:
+Since BrowserSchedule is not code-signed by a registered Apple developer, macOS will prevent it from running by default. When blocked:
 
-#### Option A: Install with Homebrew using `--no-quarantine` (Recommended)
-```sh
-brew install --no-quarantine radiosilence/tap/browser-schedule
-```
-
-#### Option B: Add `no_quarantine` to your Brewfile
-```ruby
-# In your Brewfile
-cask "browser-schedule", args: { no_quarantine: true }
-```
-
-#### Option C: Manual Security Approval
-1. Install normally: `brew install radiosilence/tap/browser-schedule`
-2. When blocked, go to **System Settings > Privacy & Security**
-3. Click **"Allow Anyway"** next to the BrowserSchedule security warning
-4. Double-click the app again to complete setup
+1. Go to **System Settings > Privacy & Security**
+2. Click **"Allow Anyway"** next to the BrowserSchedule security warning
+3. Double-click the app again to complete setup
 
 ### Setting as Default Browser
 
@@ -103,7 +78,7 @@ end = "Fri"
 - [x] **Private overrides**: Create `config.local.toml` with same format (merged with main config, git-ignored)
 - [x] **Reasonable .app behaviour**: Double-clicking the app sets it as default browser
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
-- [x] **Homebrew Cask**: Install without build tools via `brew install radiosilence/tap/browser-schedule`
+- [ ] **Homebrew Cask**: Install without build tools (tap repo needed)
 - [ ] **App Icon**: It should look nice or something
 
 ## Development
@@ -128,6 +103,7 @@ task test-all       # Run both unit and integration tests
 
 - `task build` - Build Swift executable
 - `task build-dmg` - Build distributable DMG in `./build/BrowserSchedule.dmg`
+- `task release -- patch|minor|major` - Create and push semantic version release
 - `task install` - Install app bundle and register as default browser  
 - `task update` - Update existing app bundle
 - `task uninstall` - Remove app bundle
