@@ -46,13 +46,14 @@ end = "Fri"
 # (reserved for future logging options)
 ```
 
-### Advanced Features
+### Features
 
-- **URL overrides**: Specific URL fragments always open in designated browser
-- **Private overrides**: Create `config.local.toml` with same format (merged with main config, git-ignored)
-- **Work schedule**: Flexible time and day ranges for automatic browser selection
-- **Night shifts**: Inverse time ranges (e.g., "18:00"-"9:00") support workers spanning midnight
-- **Logging**: Always logs to unified logging with optional URL redaction for privacy
+- [x] **URL overrides**: Specific URL fragments always open in designated browser
+- [x] **Private overrides**: Create `config.local.toml` with same format (merged with main config, git-ignored)
+- [ ] **Reasonable .app behaviour**: Opening the app normally should trigger browser default setting
+- [ ] **Release Pipeline**: Built DMG on GitHub
+- [ ] **Cask file**: So no build tools needed
+- [ ] **App Icon**: It should look nice or something
 
 ## Development
 
