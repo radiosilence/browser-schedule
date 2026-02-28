@@ -89,6 +89,69 @@ final class BrowserScheduleTests: XCTestCase {
     XCTAssertTrue(validation.isValid)
   }
 
+  func testWrappingDayRangeWorkTime() {
+    // Mon-Sun wraps around (Mon=2, Sun=1 in Apple calendar)
+    let config = Config(
+      workTime: Config.WorkTime(start: "09:00", end: "18:00"),
+      workDays: Config.WorkDays(start: "Mon", end: "Sun")
+    )
+
+    var components = DateComponents()
+    components.year = 2024
+    components.month = 1
+
+    // Saturday 10:00 (day=13, should be work time — every day is a work day)
+    components.day = 13  // Saturday
+    components.hour = 10
+    components.minute = 0
+    let satWork = Calendar.current.date(from: components)!
+    XCTAssertTrue(isWorkTime(config: config, currentDate: satWork))
+
+    // Sunday 10:00 (day=14, should be work time)
+    components.day = 14  // Sunday
+    let sunWork = Calendar.current.date(from: components)!
+    XCTAssertTrue(isWorkTime(config: config, currentDate: sunWork))
+
+    // Wednesday 10:00 (day=10, should be work time)
+    components.day = 10  // Wednesday
+    let wedWork = Calendar.current.date(from: components)!
+    XCTAssertTrue(isWorkTime(config: config, currentDate: wedWork))
+  }
+
+  func testWrappingDayRangeFriToTue() {
+    // Fri-Tue: Fri(6), Sat(7), Sun(1), Mon(2), Tue(3) are work days
+    let config = Config(
+      workTime: Config.WorkTime(start: "09:00", end: "18:00"),
+      workDays: Config.WorkDays(start: "Fri", end: "Tue")
+    )
+
+    var components = DateComponents()
+    components.year = 2024
+    components.month = 1
+    components.hour = 10
+    components.minute = 0
+
+    // Saturday 10:00 (should be work)
+    components.day = 13  // Saturday
+    let sat = Calendar.current.date(from: components)!
+    XCTAssertTrue(isWorkTime(config: config, currentDate: sat))
+
+    // Monday 10:00 (should be work)
+    components.day = 8  // Monday
+    let mon = Calendar.current.date(from: components)!
+    XCTAssertTrue(isWorkTime(config: config, currentDate: mon))
+
+    // Wednesday 10:00 (should NOT be work)
+    components.day = 10  // Wednesday
+    let wed = Calendar.current.date(from: components)!
+    XCTAssertFalse(isWorkTime(config: config, currentDate: wed))
+
+    // Thursday 10:00 (should NOT be work)
+    components.day = 11  // Thursday
+    let thu = Calendar.current.date(from: components)!
+    XCTAssertFalse(isWorkTime(config: config, currentDate: thu))
+  }
+
   // MARK: - Work Time Detection Tests
 
   func testIsWorkTimeDayShift() {

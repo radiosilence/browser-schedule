@@ -314,7 +314,10 @@ public func isWorkTime(config: Config, currentDate: Date = Date()) -> Bool {
   let currentMinutes = hour * 60 + minute
   let weekday = calendar.component(.weekday, from: currentDate)  // 1=Sunday, 2=Monday, etc.
 
-  let isWorkDay = weekday >= startWeekday && weekday <= endWeekday
+  let isWorkDay =
+    startWeekday <= endWeekday
+    ? (weekday >= startWeekday && weekday <= endWeekday)
+    : (weekday >= startWeekday || weekday <= endWeekday)
   let isWorkHour =
     config.workTime.isNightShift
     ? (currentMinutes >= startMinutes || currentMinutes < endMinutes)
