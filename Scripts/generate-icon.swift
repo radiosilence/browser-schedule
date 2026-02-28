@@ -1,15 +1,13 @@
 #!/usr/bin/env swift
 
 // Generates a macOS app icon for BrowserSchedule
-// Renders a clock face with two colored arcs representing work/personal time splits,
-// with a small globe overlay to convey "browser routing"
+// Cyberpunk globe-clock — neon wireframe on dark void
 
 import AppKit
 import Foundation
 
 let iconsetPath = "Resources/AppIcon.iconset"
 
-// macOS icon sizes: (filename, size in pixels)
 let sizes: [(String, CGFloat)] = [
     ("icon_16x16", 16),
     ("icon_16x16@2x", 32),
@@ -23,82 +21,174 @@ let sizes: [(String, CGFloat)] = [
     ("icon_512x512@2x", 1024),
 ]
 
+// Neon glow helper — draws a path multiple times with increasing blur
+func drawNeonGlow(ctx: CGContext, path: NSBezierPath, color: NSColor, glowRadius: CGFloat, coreWidth: CGFloat) {
+    // Outer glow (wide, faint)
+    ctx.saveGState()
+    ctx.setShadow(offset: .zero, blur: glowRadius, color: color.withAlphaComponent(0.6).cgColor)
+    color.withAlphaComponent(0.3).setStroke()
+    path.lineWidth = coreWidth * 2.5
+    path.stroke()
+    ctx.restoreGState()
+
+    // Inner glow (tighter)
+    ctx.saveGState()
+    ctx.setShadow(offset: .zero, blur: glowRadius * 0.4, color: color.withAlphaComponent(0.8).cgColor)
+    color.withAlphaComponent(0.7).setStroke()
+    path.lineWidth = coreWidth * 1.4
+    path.stroke()
+    ctx.restoreGState()
+
+    // Core line (bright)
+    color.withAlphaComponent(0.95).setStroke()
+    path.lineWidth = coreWidth
+    path.stroke()
+}
+
 func renderIcon(size: CGFloat) -> NSImage {
     let image = NSImage(size: NSSize(width: size, height: size))
     image.lockFocus()
 
-    guard NSGraphicsContext.current?.cgContext != nil else {
+    guard let ctx = NSGraphicsContext.current?.cgContext else {
         image.unlockFocus()
         return image
     }
 
     let s = size
     let inset = s * 0.08
-    let cornerRadius = s * 0.22 // macOS squircle-ish
+    let cornerRadius = s * 0.22
+    let glowSize = s * 0.015
 
-    // --- Background squircle with gradient ---
+    // --- Background: near-black with deep purple ---
     let squircle = NSBezierPath(
         roundedRect: NSRect(x: inset, y: inset, width: s - inset * 2, height: s - inset * 2),
         xRadius: cornerRadius,
         yRadius: cornerRadius
     )
-
-    // Gradient: deep blue to teal
-    let gradient = NSGradient(
-        starting: NSColor(red: 0.15, green: 0.25, blue: 0.65, alpha: 1.0),
-        ending: NSColor(red: 0.20, green: 0.55, blue: 0.70, alpha: 1.0)
+    let bgGrad = NSGradient(
+        colorsAndLocations:
+            (NSColor(red: 0.04, green: 0.02, blue: 0.10, alpha: 1.0), 0.0),
+            (NSColor(red: 0.06, green: 0.04, blue: 0.14, alpha: 1.0), 0.5),
+            (NSColor(red: 0.03, green: 0.02, blue: 0.08, alpha: 1.0), 1.0)
     )!
-    gradient.draw(in: squircle, angle: -45)
+    bgGrad.draw(in: squircle, angle: -45)
 
-    // Subtle inner shadow / border
-    NSColor(white: 1.0, alpha: 0.12).setStroke()
-    squircle.lineWidth = s * 0.01
+    // Subtle border glow
+    ctx.saveGState()
+    ctx.setShadow(offset: .zero, blur: s * 0.01, color: NSColor(red: 0.4, green: 0.0, blue: 0.8, alpha: 0.3).cgColor)
+    NSColor(red: 0.3, green: 0.1, blue: 0.5, alpha: 0.25).setStroke()
+    squircle.lineWidth = s * 0.008
     squircle.stroke()
+    ctx.restoreGState()
 
-    // --- Clock face ---
+    // --- Neon colors ---
+    let neonCyan = NSColor(red: 0.0, green: 0.85, blue: 0.95, alpha: 1.0)
+    let neonMagenta = NSColor(red: 0.95, green: 0.15, blue: 0.60, alpha: 1.0)
+    let neonPurple = NSColor(red: 0.60, green: 0.20, blue: 0.95, alpha: 1.0)
+
+    // --- Globe ---
     let center = NSPoint(x: s / 2, y: s / 2)
-    let clockRadius = s * 0.30
+    let globeR = s * 0.32
 
-    // Clock circle background
-    let clockBg = NSBezierPath(
-        ovalIn: NSRect(
-            x: center.x - clockRadius,
-            y: center.y - clockRadius,
-            width: clockRadius * 2,
-            height: clockRadius * 2
-        )
-    )
-    NSColor(white: 1.0, alpha: 0.15).setFill()
-    clockBg.fill()
+    let globePath = NSBezierPath(ovalIn: NSRect(
+        x: center.x - globeR,
+        y: center.y - globeR,
+        width: globeR * 2,
+        height: globeR * 2
+    ))
 
-    // Clock ring
-    NSColor(white: 1.0, alpha: 0.8).setStroke()
-    clockBg.lineWidth = s * 0.02
-    clockBg.stroke()
+    // Globe fill: very dark with subtle color
+    let globeGrad = NSGradient(
+        colorsAndLocations:
+            (NSColor(red: 0.06, green: 0.08, blue: 0.18, alpha: 1.0), 0.0),
+            (NSColor(red: 0.03, green: 0.04, blue: 0.12, alpha: 1.0), 0.6),
+            (NSColor(red: 0.02, green: 0.02, blue: 0.08, alpha: 1.0), 1.0)
+    )!
+    globeGrad.draw(in: globePath, angle: 70)
+
+    // Clip wireframe to globe
+    ctx.saveGState()
+    globePath.addClip()
+
+    let wireColor = neonCyan.withAlphaComponent(0.30)
+    let wireW = s * 0.005
+
+    // Equator
+    let equator = NSBezierPath()
+    equator.move(to: NSPoint(x: center.x - globeR, y: center.y))
+    equator.line(to: NSPoint(x: center.x + globeR, y: center.y))
+    wireColor.setStroke()
+    equator.lineWidth = wireW
+    equator.stroke()
+
+    // Latitude lines
+    for yOff: CGFloat in [-0.55, -0.28, 0.28, 0.55] {
+        let lat = NSBezierPath()
+        lat.move(to: NSPoint(x: center.x - globeR, y: center.y + globeR * yOff))
+        lat.line(to: NSPoint(x: center.x + globeR, y: center.y + globeR * yOff))
+        wireColor.setStroke()
+        lat.lineWidth = wireW
+        lat.stroke()
+    }
+
+    // Prime meridian
+    let pm = NSBezierPath()
+    pm.move(to: NSPoint(x: center.x, y: center.y - globeR))
+    pm.line(to: NSPoint(x: center.x, y: center.y + globeR))
+    wireColor.setStroke()
+    pm.lineWidth = wireW
+    pm.stroke()
+
+    // Meridian ellipses
+    for xFactor: CGFloat in [0.25, 0.50, 0.75] {
+        let m = NSBezierPath(ovalIn: NSRect(
+            x: center.x - globeR * xFactor,
+            y: center.y - globeR,
+            width: globeR * xFactor * 2,
+            height: globeR * 2
+        ))
+        wireColor.setStroke()
+        m.lineWidth = wireW
+        m.stroke()
+    }
+
+    // Subtle cyan ambient glow inside globe
+    let ambientCenter = NSPoint(x: center.x, y: center.y)
+    let ambient = NSGradient(
+        colorsAndLocations:
+            (neonCyan.withAlphaComponent(0.08), 0.0),
+            (neonCyan.withAlphaComponent(0.0), 1.0)
+    )!
+    ambient.draw(fromCenter: ambientCenter, radius: 0, toCenter: ambientCenter, radius: globeR, options: [])
+
+    ctx.restoreGState()
+
+    // Globe border ring — neon cyan glow
+    let ringPath = NSBezierPath(ovalIn: NSRect(
+        x: center.x - globeR,
+        y: center.y - globeR,
+        width: globeR * 2,
+        height: globeR * 2
+    ))
+    ringPath.lineCapStyle = .round
+    drawNeonGlow(ctx: ctx, path: ringPath, color: neonCyan, glowRadius: glowSize * 1.5, coreWidth: s * 0.012)
 
     // --- Work/personal arcs ---
-    // Work arc (orange) — roughly 9:00 to 18:00 (top-right to bottom-right, 270° worth)
-    let arcRadius = clockRadius * 0.85
+    let arcRadius = globeR + s * 0.045
+
+    // Work arc — neon magenta
     let workArc = NSBezierPath()
-    // In CG coordinates: 0° is right, 90° is up
-    // 9:00 on clock = 90° in CG (12 o'clock) going clockwise to 6:00 = 270° (6 o'clock)
-    // That's 9 hours out of 12 on a clock face, but we want to show work hours
-    // Work: 9am-6pm = 9 hours. Personal: 6pm-9am = 15 hours
-    // On a 24hr basis: work = 37.5% of day, personal = 62.5%
-    // Let's use a simpler visual: work arc from ~1 o'clock to ~7 o'clock position
     workArc.appendArc(
         withCenter: center,
         radius: arcRadius,
-        startAngle: 60,   // ~2 o'clock
-        endAngle: -90,    // ~6 o'clock
+        startAngle: 60,
+        endAngle: -90,
         clockwise: true
     )
-    NSColor(red: 1.0, green: 0.6, blue: 0.2, alpha: 0.9).setStroke()
-    workArc.lineWidth = s * 0.035
     workArc.lineCapStyle = .round
-    workArc.stroke()
+    drawNeonGlow(ctx: ctx, path: workArc, color: neonMagenta, glowRadius: glowSize * 1.2, coreWidth: s * 0.018)
 
-    // Personal arc (green) — the rest
+    // Personal arc — neon cyan
     let personalArc = NSBezierPath()
     personalArc.appendArc(
         withCenter: center,
@@ -107,132 +197,67 @@ func renderIcon(size: CGFloat) -> NSImage {
         endAngle: 60,
         clockwise: true
     )
-    NSColor(red: 0.3, green: 0.85, blue: 0.5, alpha: 0.9).setStroke()
-    personalArc.lineWidth = s * 0.035
     personalArc.lineCapStyle = .round
-    personalArc.stroke()
+    drawNeonGlow(ctx: ctx, path: personalArc, color: neonCyan, glowRadius: glowSize * 1.2, coreWidth: s * 0.018)
 
-    // --- Clock hands ---
-    NSColor(white: 1.0, alpha: 0.95).setStroke()
-
-    // Hour hand (pointing to ~10 o'clock)
-    let hourAngle = CGFloat.pi * 2 * (10.0 / 12.0) - .pi / 2
-    let hourLength = clockRadius * 0.5
-    let hourHand = NSBezierPath()
-    hourHand.move(to: center)
-    hourHand.line(
-        to: NSPoint(
-            x: center.x + cos(hourAngle) * hourLength,
-            y: center.y + sin(hourAngle) * hourLength
-        )
-    )
-    hourHand.lineWidth = s * 0.025
-    hourHand.lineCapStyle = .round
-    hourHand.stroke()
-
-    // Minute hand (pointing to ~12 o'clock)
-    let minuteAngle = CGFloat.pi / 2 // straight up
-    let minuteLength = clockRadius * 0.7
-    let minuteHand = NSBezierPath()
-    minuteHand.move(to: center)
-    minuteHand.line(
-        to: NSPoint(
-            x: center.x + cos(minuteAngle) * minuteLength,
-            y: center.y + sin(minuteAngle) * minuteLength
-        )
-    )
-    minuteHand.lineWidth = s * 0.018
-    minuteHand.lineCapStyle = .round
-    minuteHand.stroke()
-
-    // Center dot
-    let dotRadius = s * 0.02
-    let centerDot = NSBezierPath(
-        ovalIn: NSRect(
-            x: center.x - dotRadius,
-            y: center.y - dotRadius,
-            width: dotRadius * 2,
-            height: dotRadius * 2
-        )
-    )
-    NSColor.white.setFill()
-    centerDot.fill()
-
-    // --- Hour markers (12 small ticks) ---
+    // --- Hour tick marks ---
     for i in 0..<12 {
         let angle = CGFloat.pi * 2 * CGFloat(i) / 12.0 - .pi / 2
-        let outerR = clockRadius * 0.95
-        let innerR = (i % 3 == 0) ? clockRadius * 0.80 : clockRadius * 0.87
+        let outerR = arcRadius + s * 0.028
+        let innerR = (i % 3 == 0) ? arcRadius - s * 0.008 : arcRadius + s * 0.008
         let tick = NSBezierPath()
-        tick.move(
-            to: NSPoint(
-                x: center.x + cos(angle) * innerR,
-                y: center.y + sin(angle) * innerR
-            )
-        )
-        tick.line(
-            to: NSPoint(
-                x: center.x + cos(angle) * outerR,
-                y: center.y + sin(angle) * outerR
-            )
-        )
-        NSColor(white: 1.0, alpha: 0.6).setStroke()
-        tick.lineWidth = (i % 3 == 0) ? s * 0.015 : s * 0.008
+        tick.move(to: NSPoint(
+            x: center.x + cos(angle) * innerR,
+            y: center.y + sin(angle) * innerR
+        ))
+        tick.line(to: NSPoint(
+            x: center.x + cos(angle) * outerR,
+            y: center.y + sin(angle) * outerR
+        ))
         tick.lineCapStyle = .round
-        tick.stroke()
+        let tickColor = (i % 3 == 0) ? neonPurple : neonCyan.withAlphaComponent(0.5)
+        let tickWidth = (i % 3 == 0) ? s * 0.012 : s * 0.006
+        drawNeonGlow(ctx: ctx, path: tick, color: tickColor, glowRadius: glowSize * 0.6, coreWidth: tickWidth)
     }
 
-    // --- Small globe icon in bottom-right corner ---
-    let globeSize = s * 0.22
-    let globeCenter = NSPoint(
-        x: s * 0.73,
-        y: s * 0.27
-    )
+    // --- Clock hands ---
+    // Hour hand (~10 o'clock)
+    let hourAngle = CGFloat.pi * 2 * (10.0 / 12.0) - .pi / 2
+    let hourLength = globeR * 0.55
+    let hourHand = NSBezierPath()
+    hourHand.move(to: center)
+    hourHand.line(to: NSPoint(
+        x: center.x + cos(hourAngle) * hourLength,
+        y: center.y + sin(hourAngle) * hourLength
+    ))
+    hourHand.lineCapStyle = .round
+    drawNeonGlow(ctx: ctx, path: hourHand, color: .white, glowRadius: glowSize, coreWidth: s * 0.02)
 
-    // Globe background circle
-    let globeBg = NSBezierPath(
-        ovalIn: NSRect(
-            x: globeCenter.x - globeSize / 2,
-            y: globeCenter.y - globeSize / 2,
-            width: globeSize,
-            height: globeSize
-        )
-    )
-    NSColor(red: 0.1, green: 0.2, blue: 0.5, alpha: 0.95).setFill()
-    globeBg.fill()
-    NSColor(white: 1.0, alpha: 0.5).setStroke()
-    globeBg.lineWidth = s * 0.01
-    globeBg.stroke()
+    // Minute hand (~12 o'clock)
+    let minuteAngle = CGFloat.pi / 2
+    let minuteLength = globeR * 0.78
+    let minuteHand = NSBezierPath()
+    minuteHand.move(to: center)
+    minuteHand.line(to: NSPoint(
+        x: center.x + cos(minuteAngle) * minuteLength,
+        y: center.y + sin(minuteAngle) * minuteLength
+    ))
+    minuteHand.lineCapStyle = .round
+    drawNeonGlow(ctx: ctx, path: minuteHand, color: .white, glowRadius: glowSize * 0.8, coreWidth: s * 0.014)
 
-    // Globe lines
-    let globeStrokeColor = NSColor(white: 1.0, alpha: 0.7)
-    globeStrokeColor.setStroke()
-
-    // Horizontal line
-    let hLine = NSBezierPath()
-    hLine.move(to: NSPoint(x: globeCenter.x - globeSize * 0.4, y: globeCenter.y))
-    hLine.line(to: NSPoint(x: globeCenter.x + globeSize * 0.4, y: globeCenter.y))
-    hLine.lineWidth = s * 0.008
-    hLine.stroke()
-
-    // Vertical ellipse (meridian)
-    let meridian = NSBezierPath(
-        ovalIn: NSRect(
-            x: globeCenter.x - globeSize * 0.2,
-            y: globeCenter.y - globeSize * 0.38,
-            width: globeSize * 0.4,
-            height: globeSize * 0.76
-        )
-    )
-    meridian.lineWidth = s * 0.008
-    meridian.stroke()
-
-    // Vertical line through center
-    let vLine = NSBezierPath()
-    vLine.move(to: NSPoint(x: globeCenter.x, y: globeCenter.y - globeSize * 0.4))
-    vLine.line(to: NSPoint(x: globeCenter.x, y: globeCenter.y + globeSize * 0.4))
-    vLine.lineWidth = s * 0.008
-    vLine.stroke()
+    // Center dot — neon glow
+    let dotR = s * 0.018
+    let dotPath = NSBezierPath(ovalIn: NSRect(
+        x: center.x - dotR, y: center.y - dotR,
+        width: dotR * 2, height: dotR * 2
+    ))
+    ctx.saveGState()
+    ctx.setShadow(offset: .zero, blur: glowSize, color: neonCyan.cgColor)
+    NSColor.white.setFill()
+    dotPath.fill()
+    ctx.restoreGState()
+    NSColor.white.setFill()
+    dotPath.fill()
 
     image.unlockFocus()
     return image
@@ -242,7 +267,6 @@ func renderIcon(size: CGFloat) -> NSImage {
 let fm = FileManager.default
 try? fm.createDirectory(atPath: iconsetPath, withIntermediateDirectories: true)
 
-// Render all sizes
 for (name, size) in sizes {
     let image = renderIcon(size: size)
     guard let tiff = image.tiffRepresentation,
