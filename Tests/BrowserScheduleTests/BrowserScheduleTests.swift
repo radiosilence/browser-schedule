@@ -79,14 +79,14 @@ final class BrowserScheduleTests: XCTestCase {
     XCTAssertTrue(validation.errors.contains { $0.contains("Invalid work end day") })
   }
 
-  func testInvalidDayRange() {
+  func testWrappingDayRange() {
+    // Fri-Mon is valid (e.g. weekend workers) — should not produce validation errors
     let config = Config(
       workTime: Config.WorkTime(start: "09:00", end: "18:00"),
       workDays: Config.WorkDays(start: "Fri", end: "Mon")
     )
     let validation = ConfigValidation.validate(config)
-    XCTAssertFalse(validation.isValid)
-    XCTAssertTrue(validation.errors.contains { $0.contains("Work day range invalid") })
+    XCTAssertTrue(validation.isValid)
   }
 
   // MARK: - Work Time Detection Tests

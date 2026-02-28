@@ -88,7 +88,7 @@ func renderIcon(size: CGFloat) -> NSImage {
 
     // --- Globe ---
     let center = NSPoint(x: s / 2, y: s / 2)
-    let globeR = s * 0.32
+    let globeR = s * 0.27
 
     let globePath = NSBezierPath(ovalIn: NSRect(
         x: center.x - globeR,

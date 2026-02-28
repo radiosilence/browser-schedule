@@ -291,15 +291,6 @@ public struct ConfigValidation {
         "Invalid work end day: \(config.workDays.end) (use Sun,Mon,Tue,Wed,Thu,Fri,Sat)")
     }
 
-    // Validate day range makes sense
-    if let startDay = dayNameToWeekday(config.workDays.start),
-      let endDay = dayNameToWeekday(config.workDays.end),
-      startDay > endDay
-    {
-      errors.append(
-        "Work day range invalid: \(config.workDays.start) is after \(config.workDays.end)")
-    }
-
     return ConfigValidation(isValid: errors.isEmpty, errors: errors)
   }
 }
