@@ -27,76 +27,118 @@ struct ScheduleView: View {
   var body: some View {
     @Bindable var cm = configManager
 
-    Form {
-      // Work Hours
-      Section {
-        if scope == .main {
-          DatePicker("Start Time", selection: $startDate, displayedComponents: .hourAndMinute)
+    VStack(spacing: 0) {
+      Form {
+        // Work Hours
+        Section {
+          if scope == .main {
+            DatePicker(
+              "Start Time", selection: $startDate, displayedComponents: .hourAndMinute
+            )
             .datePickerStyle(.stepperField)
-          DatePicker("End Time", selection: $endDate, displayedComponents: .hourAndMinute)
-            .datePickerStyle(.stepperField)
-        } else {
-          OverridableDatePicker(
-            label: "Start Time",
-            inherited: configManager.workStartTime,
-            override: $cm.localWorkStartTime
-          )
-          OverridableDatePicker(
-            label: "End Time",
-            inherited: configManager.workEndTime,
-            override: $cm.localWorkEndTime
-          )
+            DatePicker("End Time", selection: $endDate, displayedComponents: .hourAndMinute)
+              .datePickerStyle(.stepperField)
+          } else {
+            OverridableDatePicker(
+              label: "Start Time",
+              inherited: configManager.workStartTime,
+              override: $cm.localWorkStartTime
+            )
+            OverridableDatePicker(
+              label: "End Time",
+              inherited: configManager.workEndTime,
+              override: $cm.localWorkEndTime
+            )
+          }
+
+          if isNightShift {
+            Label(
+              "Night shift detected (hours span midnight)",
+              systemImage: "moon.fill"
+            )
+            .foregroundStyle(.secondary)
+            .font(.callout)
+          }
+        } header: {
+          Label("Work Hours", systemImage: "clock")
         }
 
-        if isNightShift {
-          Label(
-            "Night shift detected (hours span midnight)",
-            systemImage: "moon.fill"
-          )
+        // Work Days
+        Section {
+          if scope == .main {
+            LabeledContent("Start Day") {
+              Picker("", selection: $cm.workStartDay) {
+                ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
+              }
+              .labelsHidden()
+              .frame(width: 120)
+            }
+            LabeledContent("End Day") {
+              Picker("", selection: $cm.workEndDay) {
+                ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
+              }
+              .labelsHidden()
+              .frame(width: 120)
+            }
+          } else {
+            OverridableDayPicker(
+              label: "Start Day",
+              inherited: configManager.workStartDay,
+              override: $cm.localWorkStartDay,
+              options: dayOptions
+            )
+            OverridableDayPicker(
+              label: "End Day",
+              inherited: configManager.workEndDay,
+              override: $cm.localWorkEndDay,
+              options: dayOptions
+            )
+          }
+        } header: {
+          Label("Work Days", systemImage: "calendar")
+        }
+
+        // Status
+        Section {
+          LabeledContent("Current Period") {
+            HStack(spacing: 8) {
+              Image(
+                systemName: isCurrentlyWorkTime
+                  ? "briefcase.fill" : "house.fill"
+              )
+              .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
+              Text(
+                isCurrentlyWorkTime
+                  ? "Work hours"
+                  : "Personal hours"
+              )
+            }
+          }
+
+          if !configManager.validation.isValid {
+            ForEach(configManager.validation.errors, id: \.self) { error in
+              Label(
+                error,
+                systemImage: "exclamationmark.triangle.fill"
+              )
+              .foregroundStyle(.red)
+              .font(.callout)
+            }
+          }
+        } header: {
+          Label("Status", systemImage: "info.circle")
+        }
+      }
+      .formStyle(.grouped)
+      .scrollDisabled(true)
+
+      // Weekly schedule grid — outside Form so it can fill remaining space
+      VStack(alignment: .leading, spacing: 6) {
+        Label("Schedule Overview", systemImage: "calendar.badge.clock")
+          .font(.system(.body))
           .foregroundStyle(.secondary)
-          .font(.callout)
-        }
-      } header: {
-        Label("Work Hours", systemImage: "clock")
-      }
+          .padding(.horizontal, 4)
 
-      // Work Days
-      Section {
-        if scope == .main {
-          LabeledContent("Start Day") {
-            Picker("", selection: $cm.workStartDay) {
-              ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
-            }
-            .labelsHidden()
-            .frame(width: 120)
-          }
-          LabeledContent("End Day") {
-            Picker("", selection: $cm.workEndDay) {
-              ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
-            }
-            .labelsHidden()
-            .frame(width: 120)
-          }
-        } else {
-          OverridableDayPicker(
-            label: "Start Day",
-            inherited: configManager.workStartDay,
-            override: $cm.localWorkStartDay,
-            options: dayOptions
-          )
-          OverridableDayPicker(
-            label: "End Day",
-            inherited: configManager.workEndDay,
-            override: $cm.localWorkEndDay,
-            options: dayOptions
-          )
-        }
-      } header: {
-        Label("Work Days", systemImage: "calendar")
-      }
-
-      // Weekly schedule grid
-      Section {
         WeekScheduleGrid(
           startTime: scope == .local
             ? (configManager.localWorkStartTime ?? configManager.workStartTime)
@@ -111,42 +153,11 @@ struct ScheduleView: View {
             ? (configManager.localWorkEndDay ?? configManager.workEndDay)
             : configManager.workEndDay
         )
-      } header: {
-        Label("Schedule Overview", systemImage: "calendar.badge.clock")
+        .frame(minHeight: 80, maxHeight: .infinity)
       }
-
-      // Status
-      Section {
-        LabeledContent("Current Period") {
-          HStack(spacing: 8) {
-            Image(
-              systemName: isCurrentlyWorkTime
-                ? "briefcase.fill" : "house.fill"
-            )
-            .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
-            Text(
-              isCurrentlyWorkTime
-                ? "Work hours"
-                : "Personal hours"
-            )
-          }
-        }
-
-        if !configManager.validation.isValid {
-          ForEach(configManager.validation.errors, id: \.self) { error in
-            Label(
-              error,
-              systemImage: "exclamationmark.triangle.fill"
-            )
-            .foregroundStyle(.red)
-            .font(.callout)
-          }
-        }
-      } header: {
-        Label("Status", systemImage: "info.circle")
-      }
+      .padding(.horizontal, 20)
+      .padding(.bottom, 12)
     }
-    .formStyle(.grouped)
     .onAppear { syncDatesFromConfig() }
     .onChange(of: configManager.workStartTime) { syncDatesFromConfig() }
     .onChange(of: configManager.workEndTime) { syncDatesFromConfig() }
@@ -261,10 +272,17 @@ private struct WeekScheduleGrid: View {
         // Hour labels column
         VStack(alignment: .trailing, spacing: 0) {
           ForEach(Self.hours, id: \.self) { hour in
-            Text("\(hour)")
-              .font(.caption2)
-              .foregroundStyle(.secondary)
-              .frame(height: hour == 24 ? 0 : 20, alignment: .top)
+            if hour == 24 {
+              Text("\(hour)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(height: 0)
+            } else {
+              Text("\(hour)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxHeight: .infinity, alignment: .top)
+            }
           }
         }
         .frame(width: 20)
@@ -325,7 +343,6 @@ private struct WeekScheduleGrid: View {
           .frame(maxWidth: .infinity)
         }
       }
-      .frame(height: 110)
     }
     .padding(.vertical, 4)
   }
