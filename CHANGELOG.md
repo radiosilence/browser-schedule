@@ -1,5 +1,30 @@
 # Changelog
 
+## v1.2.0
+
+### Fixed
+
+- **Minute-precision scheduling** — `parseTime()` was silently dropping minutes, so "9:30" routed as "9:00". Now returns total minutes and `isWorkTime()` compares at minute granularity.
+
+### Added
+
+- **Form-based layout** — all settings tabs use `Form { Section { LabeledContent } }.formStyle(.grouped)` for native macOS settings appearance
+- **Centralized scope picker** — single `config.toml` / `config.local.toml` toggle above the tab bar instead of duplicated per-tab
+- **Browser icons** — picker shows 16x16 app icons via `NSWorkspace.shared.icon(forFile:)`, menu-based for proper image rendering
+- **DatePicker time input** — stepper fields replace raw text input for work hours
+- **24-hour timeline bar** — visual schedule overview with work/personal segments, red current-time marker, hour labels; night shift renders as two edge segments
+- **Routing status on General tab** — shows which browser is currently active and why
+- **Monokai Pro Filter Machine theme** — TOML editor now has a dark theme with proper syntax colors (pink keys, yellow strings, cyan sections, orange booleans, purple numbers)
+- **Delete confirmation** — "Delete Local Config" requires confirmation dialog, moved to left side of footer
+- **Better URL rules UX** — `"e.g. github.com"` placeholder, `"No patterns — URLs follow the schedule"` empty state, duplicate detection on add
+- **Minute-precision test** — new `testMinutePrecisionWorkTime` covering exact 9:30/17:45 boundaries
+
+### Changed
+
+- Default window height increased to fit all Schedule tab content
+- `BrowserInfo` now carries `NSImage` icon (dropped `Sendable` conformance)
+- "Set as Default" button hidden when already the default browser
+
 ## v1.1.0
 
 ### Added

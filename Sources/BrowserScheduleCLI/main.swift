@@ -3,103 +3,105 @@ import BrowserScheduleCore
 import Foundation
 
 struct BrowserScheduleCLI: ParsableCommand {
-    static let configuration = CommandConfiguration(
-        commandName: "browser-schedule-cli",
-        abstract: "Command-line interface for BrowserSchedule configuration and management",
-        subcommands: [Config.self, SetDefault.self, Open.self],
-        defaultSubcommand: Config.self
-    )
+  static let configuration = CommandConfiguration(
+    commandName: "browser-schedule-cli",
+    abstract: "Command-line interface for BrowserSchedule configuration and management",
+    subcommands: [Config.self, SetDefault.self, Open.self],
+    defaultSubcommand: Config.self
+  )
 }
 
 extension BrowserScheduleCLI {
-    struct Config: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            abstract: "Display current configuration and status"
-        )
-        
-        func run() throws {
-            let config = BrowserScheduleCore.Config.loadFromFile()
-            let validation = ConfigValidation.validate(config)
+  struct Config: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: "Display current configuration and status"
+    )
 
-            print("Current configuration:")
-            print("  Work browser: \(config.browsers.work)")
-            print("  Personal browser: \(config.browsers.personal)")
-            let shiftType = config.workTime.isNightShift ? " (night shift)" : ""
-            print("  Work hours: \(config.workTime.start)-\(config.workTime.end)\(shiftType)")
-            print("  Work days: \(config.workDays.start)-\(config.workDays.end)")
-            
-            // Show merged domain overrides
-            if let overrides = config.urls {
-                if let personal = overrides.personal, !personal.isEmpty {
-                    print("  Personal overrides: \(personal.joined(separator: ", "))")
-                }
-                if let work = overrides.work, !work.isEmpty {
-                    print("  Work overrides: \(work.joined(separator: ", "))")
-                }
-            }
+    func run() throws {
+      let config = BrowserScheduleCore.Config.loadFromFile()
+      let validation = ConfigValidation.validate(config)
 
-            print("  Logging: enabled (unified logging)")
-            print("  Privacy: URLs automatically redacted by macOS unified logging")
-            print("  View logs: log show --predicate 'subsystem == \"\(bundleIdentifier)\"' --last 1h")
+      print("Current configuration:")
+      print("  Work browser: \(config.browsers.work)")
+      print("  Personal browser: \(config.browsers.personal)")
+      let shiftType = config.workTime.isNightShift ? " (night shift)" : ""
+      print("  Work hours: \(config.workTime.start)-\(config.workTime.end)\(shiftType)")
+      print("  Work days: \(config.workDays.start)-\(config.workDays.end)")
 
-            let homeDir = FileManager.default.homeDirectoryForCurrentUser
-            let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
-            let localConfigPath = homeDir.appendingPathComponent(".config/browser-schedule/config.local.toml")
-            print("  Config file: \(configPath.path)")
-            if FileManager.default.fileExists(atPath: localConfigPath.path) {
-                print("  Local config: \(localConfigPath.path) (merged)")
-            }
-
-            if !validation.isValid {
-                print("  ⚠️  Configuration errors:")
-                for error in validation.errors {
-                    print("     - \(error)")
-                }
-                print("  Current: Using personal browser (\(config.browsers.personal)) due to config errors")
-            } else {
-                if isWorkTime(config: config) {
-                    print("  Current: Work time - using \(config.browsers.work)")
-                } else {
-                    print("  Current: Personal time - using \(config.browsers.personal)")
-                }
-            }
+      // Show merged domain overrides
+      if let overrides = config.urls {
+        if let personal = overrides.personal, !personal.isEmpty {
+          print("  Personal overrides: \(personal.joined(separator: ", "))")
         }
-    }
-    
-    struct SetDefault: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            commandName: "set-default",
-            abstract: "Set BrowserSchedule as the default browser"
-        )
-        
-        func run() throws {
-            try registerAppBundle()
-            print("Registered app bundle with Launch Services")
+        if let work = overrides.work, !work.isEmpty {
+          print("  Work overrides: \(work.joined(separator: ", "))")
+        }
+      }
 
-            setAsDefaultBrowser()
-            print("Requested default browser change.")
-            print("If prompted, please allow BrowserSchedule to be set as default browser.")
+      print("  Logging: enabled (unified logging)")
+      print("  Privacy: URLs automatically redacted by macOS unified logging")
+      print("  View logs: log show --predicate 'subsystem == \"\(bundleIdentifier)\"' --last 1h")
+
+      let homeDir = FileManager.default.homeDirectoryForCurrentUser
+      let configPath = homeDir.appendingPathComponent(".config/browser-schedule/config.toml")
+      let localConfigPath = homeDir.appendingPathComponent(
+        ".config/browser-schedule/config.local.toml")
+      print("  Config file: \(configPath.path)")
+      if FileManager.default.fileExists(atPath: localConfigPath.path) {
+        print("  Local config: \(localConfigPath.path) (merged)")
+      }
+
+      if !validation.isValid {
+        print("  ⚠️  Configuration errors:")
+        for error in validation.errors {
+          print("     - \(error)")
         }
-    }
-    
-    struct Open: ParsableCommand {
-        static let configuration = CommandConfiguration(
-            abstract: "Open a URL using BrowserSchedule routing rules"
-        )
-        
-        @Argument(help: "URL to open")
-        var url: String
-        
-        func run() throws {
-            guard url.hasPrefix("http://") || url.hasPrefix("https://") else {
-                print("Error: URL must start with http:// or https://")
-                throw ExitCode.failure
-            }
-            
-            let config = BrowserScheduleCore.Config.loadFromFile()
-            openURL(url, config: config)
+        print(
+          "  Current: Using personal browser (\(config.browsers.personal)) due to config errors")
+      } else {
+        if isWorkTime(config: config) {
+          print("  Current: Work time - using \(config.browsers.work)")
+        } else {
+          print("  Current: Personal time - using \(config.browsers.personal)")
         }
+      }
     }
+  }
+
+  struct SetDefault: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      commandName: "set-default",
+      abstract: "Set BrowserSchedule as the default browser"
+    )
+
+    func run() throws {
+      try registerAppBundle()
+      print("Registered app bundle with Launch Services")
+
+      setAsDefaultBrowser()
+      print("Requested default browser change.")
+      print("If prompted, please allow BrowserSchedule to be set as default browser.")
+    }
+  }
+
+  struct Open: ParsableCommand {
+    static let configuration = CommandConfiguration(
+      abstract: "Open a URL using BrowserSchedule routing rules"
+    )
+
+    @Argument(help: "URL to open")
+    var url: String
+
+    func run() throws {
+      guard url.hasPrefix("http://") || url.hasPrefix("https://") else {
+        print("Error: URL must start with http:// or https://")
+        throw ExitCode.failure
+      }
+
+      let config = BrowserScheduleCore.Config.loadFromFile()
+      openURL(url, config: config)
+    }
+  }
 }
 
 BrowserScheduleCLI.main()

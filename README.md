@@ -13,7 +13,7 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 ### Homebrew (Recommended)
 
 ```sh
-brew install radiosilence/browser-schedule/browser-schedule
+brew install --cask radiosilence/browser-schedule/browser-schedule
 ```
 
 Handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
@@ -35,14 +35,14 @@ Builds, ad-hoc signs, creates the app bundle, and installs to `/Applications`.
 
 ## Settings UI
 
-Double-clicking the app opens a full settings window with four tabs:
+Double-clicking the app opens a native macOS settings window with four tabs:
 
-- **General** - Pick work/personal browsers from installed apps, set as default browser
-- **Schedule** - Configure work hours and days, see current work/personal status
-- **URL Rules** - Add URL patterns that always route to a specific browser
-- **Config Files** - Edit raw TOML config files directly (both main and local override)
+- **General** - Browser pickers with app icons, default browser status, live routing indicator
+- **Schedule** - Native time pickers (stepper fields), day pickers, 24-hour timeline visualization
+- **URL Rules** - Side-by-side pattern lists with duplicate detection, better empty states
+- **Config Files** - Monokai Pro-themed TOML editor with syntax highlighting, delete confirmation
 
-When invoked via URL (as the default browser), the app handles the URL silently in the background without showing any UI.
+A scope picker at the top switches between `config.toml` and `config.local.toml` across all tabs. When invoked via URL (as the default browser), the app handles the URL silently in the background.
 
 ## How It Works
 
@@ -80,13 +80,16 @@ Create `~/.config/browser-schedule/config.local.toml` for private overrides that
 
 ### Features
 
-- [x] **Settings UI**: Full SwiftUI settings window for all configuration
+- [x] **Native settings UI**: Form-based layout with `LabeledContent`, browser icons, stepper time pickers
 - [x] **URL overrides**: Specific URL fragments always open in designated browser
 - [x] **Private overrides**: `config.local.toml` merges with main config, git-ignored
-- [x] **Browser detection**: Auto-discovers installed browsers for easy picker selection
+- [x] **Browser detection**: Auto-discovers installed browsers with icons for picker selection
+- [x] **Minute-precision scheduling**: Work times like `9:30`/`17:45` are respected exactly
 - [x] **Night shift support**: Work hours can span midnight
+- [x] **Timeline visualization**: 24-hour bar showing work/personal segments with current time marker
+- [x] **Monokai Pro editor**: TOML config editor with Filter Machine syntax theme
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
-- [x] **Homebrew Cask**: `brew install radiosilence/browser-schedule/browser-schedule`
+- [x] **Homebrew Cask**: `brew install --cask radiosilence/browser-schedule/browser-schedule`
 - [x] **App Icon**: Clock with work/personal arcs and globe badge, generated via Core Graphics
 
 ## Development

@@ -42,7 +42,7 @@ BrowserSchedule is a macOS 14+ application that automatically switches your defa
   - `BrowserEnumeration.swift` - Discovers installed browsers via Launch Services
 - **`Sources/BrowserSchedule/`** - Executable with SwiftUI settings UI
   - `main.swift` - NSApplication + SwiftUI hybrid: URL handling via AppDelegate, settings window via NSHostingView
-  - `Views/` - SwiftUI views: ContentView (tabs), GeneralView (browser pickers), ScheduleView (work hours/days), URLRulesView (URL patterns), ConfigEditorView (raw TOML editor)
+  - `Views/` - SwiftUI views using Form+LabeledContent layout: ContentView (tabs + centralized scope picker), GeneralView (browser pickers with icons, routing status), ScheduleView (DatePicker time input, timeline bar), URLRulesView (URL patterns), ConfigEditorView (Monokai Pro TOML editor), TOMLEditorView (NSTextView syntax highlighter)
 - **`Sources/BrowserScheduleCLI/`** - CLI interface for headless management
 - **`Tests/BrowserScheduleTests/`** - Comprehensive test suite (30+ tests)
 
@@ -61,9 +61,12 @@ BrowserSchedule is a macOS 14+ application that automatically switches your defa
 
 - **Config Merging**: Local config files override base config, with URL arrays being merged (not replaced)
 - **Night Shift Support**: Work hours can span midnight (e.g., "18:00"-"9:00") for night workers
+- **Minute-Precision Time**: `parseTime()` returns total minutes (hour*60+minute), `isWorkTime()` compares minute-level
 - **Validation with Graceful Degradation**: Invalid config falls back to personal browser rather than failing
 - **Dual Execution Modes**: Direct launch shows SwiftUI settings; URL invocation handles silently and exits
 - **TOML Serialization**: ConfigManager builds TOMLTable manually for output (since Config uses `let` properties)
+- **Form Layout**: Views use `.formStyle(.grouped)` with `LabeledContent` for native macOS settings appearance
+- **Browser Icons**: `BrowserInfo` includes `NSImage` icon from `NSWorkspace.shared.icon(forFile:)`, shown via Menu-based picker
 
 ## Common Commands
 
