@@ -4,6 +4,10 @@
 
 Automatically switches default browser based on time, day, and URL patterns. Built for macOS 14+ with Swift and SwiftUI.
 
+<img width="702" height="612" alt="Screenshot 2026-02-28 at 10 31 21" src="https://github.com/user-attachments/assets/c87347bc-ff0b-407b-a5e0-fb0785ad366e" />
+<img width="707" height="613" alt="Screenshot 2026-02-28 at 10 31 30" src="https://github.com/user-attachments/assets/833aab29-ab02-455d-9220-71bbe96d4b38" />
+
+
 ## Installation
 
 ### Option 1: Direct Download
