@@ -79,4 +79,29 @@ let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.prohibited)
+
+// Build standard menu bar (not provided automatically without a nib)
+let mainMenu = NSMenu()
+
+let appMenu = NSMenu()
+appMenu.addItem(NSMenuItem(title: "About BrowserSchedule", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+appMenu.addItem(.separator())
+appMenu.addItem(NSMenuItem(title: "Quit BrowserSchedule", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+let appMenuItem = NSMenuItem()
+appMenuItem.submenu = appMenu
+mainMenu.addItem(appMenuItem)
+
+let editMenu = NSMenu(title: "Edit")
+editMenu.addItem(NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z"))
+editMenu.addItem(NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "Z"))
+editMenu.addItem(.separator())
+editMenu.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+editMenu.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+editMenu.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+editMenu.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+let editMenuItem = NSMenuItem()
+editMenuItem.submenu = editMenu
+mainMenu.addItem(editMenuItem)
+
+app.mainMenu = mainMenu
 app.run()
