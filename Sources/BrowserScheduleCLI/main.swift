@@ -73,36 +73,12 @@ extension BrowserScheduleCLI {
         )
         
         func run() throws {
-            do {
-                try registerAppBundle()
-                print("Registered app bundle with Launch Services")
-                
-                try setAsDefaultBrowser()
-                print("Successfully set BrowserSchedule as default browser")
-            } catch let error as SetupError {
-                switch error {
-                case .registrationFailed(let details):
-                    print("Warning: Could not register app bundle: \(details)")
-                    throw ExitCode.failure
-                case .setDefaultFailed(let httpStatus, let httpsStatus):
-                    if httpStatus == 0 || httpsStatus == 0 {
-                        // Partial success - at least one scheme worked
-                        print("Setting default browser requires user consent.")
-                        print("If prompted, please allow BrowserSchedule to be set as default browser.")
-                        print("HTTP handler status: \(httpStatus), HTTPS handler status: \(httpsStatus)")
-                        if httpStatus == 0 && httpsStatus == 0 {
-                            print("Successfully set BrowserSchedule as default browser")
-                        } else {
-                            print("Partial success - HTTP handler registered")
-                        }
-                    } else {
-                        // Both failed
-                        print("Failed to set as default browser.")
-                        print("HTTP handler status: \(httpStatus), HTTPS handler status: \(httpsStatus)")
-                        throw ExitCode.failure
-                    }
-                }
-            }
+            try registerAppBundle()
+            print("Registered app bundle with Launch Services")
+
+            setAsDefaultBrowser()
+            print("Requested default browser change.")
+            print("If prompted, please allow BrowserSchedule to be set as default browser.")
         }
     }
     

@@ -202,6 +202,7 @@ tasks:
     deps: [build]
     cmds:
       - mkdir -p ./.build/pkg/BrowserSchedule.app/Contents/MacOS
+      - mkdir -p ./.build/pkg/BrowserSchedule.app/Contents/Resources
       - |
         cat > ./.build/pkg/BrowserSchedule.app/Contents/Info.plist << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
@@ -216,6 +217,8 @@ tasks:
         	<string>BrowserSchedule</string>
         	<key>CFBundleVersion</key>
         	<string>1.0</string>
+        	<key>CFBundleIconFile</key>
+        	<string>AppIcon</string>
         	<key>CFBundlePackageType</key>
         	<string>APPL</string>
         	<key>LSUIElement</key>
@@ -237,6 +240,7 @@ tasks:
         </dict>
         </plist>
         EOF
+      - cp Resources/AppIcon.icns ./.build/pkg/BrowserSchedule.app/Contents/Resources/AppIcon.icns
       - cp .build/release/BrowserSchedule ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
       - cp .build/release/BrowserScheduleCLI ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule

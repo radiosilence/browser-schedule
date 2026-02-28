@@ -30,44 +30,40 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BrowserSchedule is a macOS application that automatically switches your default browser based on time, day, and URL patterns. Built in Swift with TOML configuration, it integrates with macOS Launch Services to intercept URL opens and route them to work (Chrome) or personal (Zen) browsers based on configurable rules.
+BrowserSchedule is a macOS 14+ application that automatically switches your default browser based on time, day, and URL patterns. Built in Swift with SwiftUI and TOML configuration, it integrates with macOS Launch Services to intercept URL opens and route them to work (Chrome) or personal (Zen) browsers based on configurable rules. On direct launch it shows a full settings UI; on URL invocation it handles the URL silently in the background.
 
 ## Architecture
 
 ### Module Structure
 
 - **`Sources/BrowserScheduleCore/`** - Core logic module (testable, pure Swift)
-  - Config loading, parsing, validation
-  - URL routing logic (work/personal browser selection)
-  - Time/day parsing and work schedule detection
-  - Browser launching via macOS `open` command
-- **`Sources/BrowserSchedule/`** - Executable wrapper
-  - Command-line argument handling
-  - NSApplication delegate for URL scheme handling
-  - App lifecycle management
+  - `BrowserScheduleCore.swift` - Config types, loading, parsing, validation, URL routing, browser selection, work time logic
+  - `ConfigManager.swift` - `@Observable` config manager for SwiftUI data binding, config saving via TOMLKit
+  - `BrowserEnumeration.swift` - Discovers installed browsers via Launch Services
+- **`Sources/BrowserSchedule/`** - Executable with SwiftUI settings UI
+  - `main.swift` - NSApplication + SwiftUI hybrid: URL handling via AppDelegate, settings window via NSHostingView
+  - `Views/` - SwiftUI views: ContentView (tabs), GeneralView (browser pickers), ScheduleView (work hours/days), URLRulesView (URL patterns), ConfigEditorView (raw TOML editor)
+- **`Sources/BrowserScheduleCLI/`** - CLI interface for headless management
 - **`Tests/BrowserScheduleTests/`** - Comprehensive test suite (30+ tests)
-  - Config loading/parsing tests
-  - Time/day logic validation
-  - Browser selection scenarios
-  - Edge case handling
 
 ### Key Components
 
-- **Config System**: TOML-based with local override support (`config.local.toml` merges with `config.toml`)
+- **Config System**: TOML-based with local override support (`config.local.toml` merges with `config.toml`). ConfigManager provides `@Observable` bindings for SwiftUI and handles save/reload.
 - **URL Routing Logic**: Three-tier decision hierarchy:
   1. URL fragment overrides (highest priority)
-  2. Time/day-based work schedule detection  
+  2. Time/day-based work schedule detection
   3. Fallback to personal browser
-- **macOS Integration**: URL scheme handler registration via Launch Services
+- **App Lifecycle**: NSApplication with 0.5s timeout to distinguish direct launch (show UI) from URL invocation (silent handling). `setActivationPolicy` switches between `.prohibited` and `.regular`.
 - **Logging**: Unified logging to macOS Console with centralized subsystem identifier
-- **Bundle ID**: Centralized as `bundleIdentifier` constant in BrowserScheduleCore (referenced by logger, app bundle, and task commands)
+- **Bundle ID**: Centralized as `bundleIdentifier` constant in BrowserScheduleCore
 
 ### Key Design Patterns
 
 - **Config Merging**: Local config files override base config, with URL arrays being merged (not replaced)
 - **Night Shift Support**: Work hours can span midnight (e.g., "18:00"-"9:00") for night workers
 - **Validation with Graceful Degradation**: Invalid config falls back to personal browser rather than failing
-- **Dual Execution Modes**: Command-line URL handling and NSApplication-based URL event handling
+- **Dual Execution Modes**: Direct launch shows SwiftUI settings; URL invocation handles silently and exits
+- **TOML Serialization**: ConfigManager builds TOMLTable manually for output (since Config uses `let` properties)
 
 ## Common Commands
 
@@ -92,24 +88,18 @@ BrowserSchedule is a macOS application that automatically switches your default 
 
 ### Configuration Management
 
-Config files are automatically created at:
+Config files at `~/.config/browser-schedule/`:
+- `config.toml` - Main config (created on first install)
+- `config.local.toml` - Private overrides (git-ignored, created via UI or manually)
 
-- `~/.config/browser-schedule/config.toml` (main config)
-- `~/.config/browser-schedule/config.local.toml` (private overrides, git-ignored)
-
-The app validates time formats (HH:MM), day names (Mon-Sun), and provides detailed error reporting via `--config` flag.
+Configurable via the Settings UI or direct file editing. The app validates time formats (HH:MM), day names (Mon-Sun), and shows validation errors inline.
 
 ## Development Notes
 
-- Uses Swift Package Manager with TOMLKit dependency for TOML parsing
-- Requires macOS 11+ minimum for unified logging and modern Swift features
-- App bundle is created at `/Applications/BrowserSchedule.app` with proper Info.plist for URL scheme handling
-- Registration with Launch Services requires the `--set-default` flag after bundle creation
-- Logging can be viewed in Console.app or via task commands:
-  - `task logs` - Recent activity (30 minutes)  
-  - `task logs-realtime` - Real-time monitoring
-  - `task logs-all` - Extended history (24 hours)
-- Log privacy: URLs appear as `<private>` due to automatic macOS unified logging privacy protection
+- Requires macOS 14+ (Sonoma) for `@Observable` macro and modern SwiftUI
+- Uses Swift Package Manager with TOMLKit for TOML parsing
+- App bundle at `/Applications/BrowserSchedule.app` with `LSUIElement=true` in Info.plist (background by default, switches to foreground when showing UI)
+- TOMLKit API: use direct assignment to TOMLTable subscripts (`table["key"] = "value"`), `TOMLArray(["a","b"])` for arrays, `table.convert()` for serialization
 
 ## Workflow Memories
 

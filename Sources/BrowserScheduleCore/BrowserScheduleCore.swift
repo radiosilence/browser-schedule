@@ -219,6 +219,18 @@ public struct LocalConfig: Codable {
     public let workTime: Config.WorkTime?
     public let workDays: Config.WorkDays?
 
+    public init(
+        browsers: Config.Browsers? = nil,
+        urls: Config.OverrideUrls? = nil,
+        workTime: Config.WorkTime? = nil,
+        workDays: Config.WorkDays? = nil
+    ) {
+        self.browsers = browsers
+        self.urls = urls
+        self.workTime = workTime
+        self.workDays = workDays
+    }
+
     enum CodingKeys: String, CodingKey {
         case browsers
         case urls
@@ -404,14 +416,11 @@ public func isDefaultBrowser() -> Bool {
 
 public enum SetupError: LocalizedError {
     case registrationFailed(String)
-    case setDefaultFailed(OSStatus, OSStatus)
-    
+
     public var errorDescription: String? {
         switch self {
         case .registrationFailed(let error):
             return "Failed to register app bundle: \(error)"
-        case .setDefaultFailed(let httpStatus, let httpsStatus):
-            return "Failed to set as default browser (HTTP: \(httpStatus), HTTPS: \(httpsStatus))"
         }
     }
 }
@@ -436,13 +445,8 @@ public func registerAppBundle() throws {
     }
 }
 
-public func setAsDefaultBrowser() throws {
-    let httpStatus = LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
-    let httpsStatus = LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
-
-    if httpStatus != noErr || httpsStatus != noErr {
-        throw SetupError.setDefaultFailed(httpStatus, httpsStatus)
-    }
-    
-    logger.debug("Successfully set as default browser")
+public func setAsDefaultBrowser() {
+    LSSetDefaultHandlerForURLScheme("http" as CFString, bundleIdentifier as CFString)
+    LSSetDefaultHandlerForURLScheme("https" as CFString, bundleIdentifier as CFString)
+    logger.debug("Requested default browser change (awaiting user confirmation)")
 }
