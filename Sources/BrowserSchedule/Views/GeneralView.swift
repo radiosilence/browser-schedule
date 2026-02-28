@@ -1,6 +1,18 @@
 import BrowserScheduleCore
 import SwiftUI
 
+// MARK: - Settings Row Style
+
+struct SettingsRowStyle: LabeledContentStyle {
+  func makeBody(configuration: Configuration) -> some View {
+    HStack {
+      configuration.label
+      Spacer()
+      configuration.content
+    }
+  }
+}
+
 struct GeneralView: View {
   @Environment(ConfigManager.self) private var configManager
   @Binding var scope: EditingScope
@@ -51,9 +63,11 @@ struct GeneralView: View {
             }
           }
           .padding(.vertical, 4)
+          .padding(.horizontal, 6)
         } label: {
           Label("Default Browser", systemImage: "globe")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         // Current routing status
         GroupBox {
@@ -85,9 +99,11 @@ struct GeneralView: View {
               }
             }
           }
+          .padding(.horizontal, 6)
         } label: {
           Label("Routing", systemImage: "arrow.triangle.branch")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         // Browsers
         GroupBox {
@@ -122,9 +138,11 @@ struct GeneralView: View {
               .padding(.vertical, 4)
             }
           }
+          .padding(.horizontal, 6)
         } label: {
           Label("Browsers", systemImage: "app.dashed")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         if let error = configManager.lastError {
           GroupBox {
@@ -134,6 +152,7 @@ struct GeneralView: View {
           }
         }
       }
+      .labeledContentStyle(SettingsRowStyle())
       .padding(.horizontal, 20)
       .padding(.vertical, 12)
     }

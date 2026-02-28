@@ -33,15 +33,19 @@ struct ScheduleView: View {
         GroupBox {
           VStack(spacing: 0) {
             if scope == .main {
-              DatePicker(
-                "Start Time", selection: $startDate, displayedComponents: .hourAndMinute
-              )
-              .datePickerStyle(.stepperField)
+              LabeledContent("Start Time") {
+                DatePicker("", selection: $startDate, displayedComponents: .hourAndMinute)
+                  .datePickerStyle(.stepperField)
+                  .labelsHidden()
+              }
               .padding(.vertical, 4)
               Divider()
-              DatePicker("End Time", selection: $endDate, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.stepperField)
-                .padding(.vertical, 4)
+              LabeledContent("End Time") {
+                DatePicker("", selection: $endDate, displayedComponents: .hourAndMinute)
+                  .datePickerStyle(.stepperField)
+                  .labelsHidden()
+              }
+              .padding(.vertical, 4)
             } else {
               OverridableDatePicker(
                 label: "Start Time",
@@ -69,9 +73,11 @@ struct ScheduleView: View {
               .padding(.vertical, 4)
             }
           }
+          .padding(.horizontal, 6)
         } label: {
           Label("Work Hours", systemImage: "clock")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         // Work Days
         GroupBox {
@@ -112,9 +118,11 @@ struct ScheduleView: View {
               .padding(.vertical, 4)
             }
           }
+          .padding(.horizontal, 6)
         } label: {
           Label("Work Days", systemImage: "calendar")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
 
         // Status
         GroupBox {
@@ -148,10 +156,13 @@ struct ScheduleView: View {
               }
             }
           }
+          .padding(.horizontal, 6)
         } label: {
           Label("Status", systemImage: "info.circle")
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
       }
+      .labeledContentStyle(SettingsRowStyle())
       .padding(.horizontal, 20)
       .padding(.vertical, 12)
 
