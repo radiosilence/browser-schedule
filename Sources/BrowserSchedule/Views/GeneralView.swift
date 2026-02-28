@@ -122,9 +122,8 @@ struct GeneralView: View {
     ) -> some View {
         HStack {
             Text(label)
-                .frame(width: 140, alignment: .leading)
-            content()
             Spacer()
+            content()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -142,14 +141,13 @@ struct OverridableField<Content: View>: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 140, alignment: .leading)
+            Spacer()
             if override != nil {
                 content(
                     Binding(
                         get: { override ?? "" },
                         set: { override = $0 }
                     ))
-                Spacer()
                 Button {
                     override = nil
                 } label: {
@@ -161,7 +159,6 @@ struct OverridableField<Content: View>: View {
             } else {
                 Text(inherited)
                     .foregroundStyle(.secondary)
-                Spacer()
                 Button("Override") {
                     override = inherited
                 }

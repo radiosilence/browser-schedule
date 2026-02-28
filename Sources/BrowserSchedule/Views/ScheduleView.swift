@@ -167,9 +167,8 @@ struct ScheduleView: View {
     ) -> some View {
         HStack {
             Text(label)
-                .frame(width: 140, alignment: .leading)
-            content()
             Spacer()
+            content()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -206,7 +205,7 @@ private struct OverridableTextField: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 140, alignment: .leading)
+            Spacer()
             if override != nil {
                 TextField(
                     placeholder,
@@ -231,7 +230,6 @@ private struct OverridableTextField: View {
                 Button("Override") { override = inherited }
                     .controlSize(.small)
             }
-            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -247,7 +245,7 @@ private struct OverridableDayPicker: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 140, alignment: .leading)
+            Spacer()
             if override != nil {
                 Picker(
                     "",
@@ -274,7 +272,6 @@ private struct OverridableDayPicker: View {
                 Button("Override") { override = inherited }
                     .controlSize(.small)
             }
-            Spacer()
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
