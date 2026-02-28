@@ -13,6 +13,7 @@
 - **`ConfigManager`** (`@Observable`) — centralized config state for SwiftUI binding, handles load/save/merge/validation
 - **`BrowserEnumeration`** — discovers installed browsers via `NSWorkspace.urlsForApplications`
 - **TOML syntax highlighting** — NSTextView-based editor with regex highlighting for keys, strings, sections, booleans, numbers, comments
+- **App icon** — Core Graphics-generated macOS icon (clock with work/personal arcs + globe badge), `Scripts/generate-icon.swift` to regenerate
 - **Smart quote sanitization** — strips macOS curly quotes/dashes on both load and save to prevent TOML parse errors
 - **Standard menu bar** — programmatic App menu (Cmd+Q) and Edit menu (Cmd+C/V/X/Z/A) since bare NSApplication has none
 

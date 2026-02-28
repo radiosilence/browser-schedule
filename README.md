@@ -76,7 +76,7 @@ Create `~/.config/browser-schedule/config.local.toml` for private overrides that
 - [x] **Night shift support**: Work hours can span midnight
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
 - [ ] **Homebrew Cask**: Install without build tools (tap repo needed)
-- [ ] **App Icon**: It should look nice or something
+- [x] **App Icon**: Clock with work/personal arcs and globe badge, generated via Core Graphics
 
 ## Development
 
