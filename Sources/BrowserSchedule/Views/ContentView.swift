@@ -24,7 +24,6 @@ struct ContentView: View {
             ConfigEditorView()
                 .tabItem { Label("Config Files", systemImage: "doc.text") }
         }
-        .frame(minWidth: 640, minHeight: 480)
-        .padding(8)
+        .frame(minWidth: 660, minHeight: 500)
     }
 }

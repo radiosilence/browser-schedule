@@ -12,8 +12,9 @@ struct GeneralView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                GroupBox("Default Browser") {
-                    HStack {
+                // Default Browser status
+                GroupBox {
+                    HStack(spacing: 12) {
                         Image(
                             systemName: configManager.isDefaultBrowserStatus
                                 ? "checkmark.circle.fill" : "xmark.circle.fill"
@@ -40,18 +41,26 @@ struct GeneralView: View {
                         }
                         .disabled(configManager.isDefaultBrowserStatus)
                     }
-                    .padding(8)
+                    .padding(4)
+                } label: {
+                    Label("Default Browser", systemImage: "globe")
                 }
 
-                scopePicker
+                Picker("Editing", selection: $scope) {
+                    Text("config.toml").tag(EditingScope.main)
+                    Text("config.local.toml").tag(EditingScope.local)
+                }
+                .pickerStyle(.segmented)
 
-                GroupBox("Browsers") {
-                    VStack(alignment: .leading, spacing: 12) {
+                // Browsers
+                GroupBox {
+                    VStack(spacing: 0) {
                         if scope == .main {
-                            row("Work Browser") {
+                            browserRow("Work Browser") {
                                 BrowserPicker(selection: $cm.workBrowser)
                             }
-                            row("Personal Browser") {
+                            Divider().padding(.horizontal, -4)
+                            browserRow("Personal Browser") {
                                 BrowserPicker(selection: $cm.personalBrowser)
                             }
                         } else {
@@ -62,6 +71,8 @@ struct GeneralView: View {
                             ) { binding in
                                 BrowserPicker(selection: binding)
                             }
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            Divider().padding(.horizontal, -4)
                             OverridableField(
                                 label: "Personal Browser",
                                 inherited: configManager.personalBrowser,
@@ -69,17 +80,31 @@ struct GeneralView: View {
                             ) { binding in
                                 BrowserPicker(selection: binding)
                             }
-                        }
-
-                        HStack {
-                            Spacer()
-                            saveButton
+                            .padding(.horizontal, 12).padding(.vertical, 10)
                         }
                     }
-                    .padding(8)
+                } label: {
+                    Label("Browsers", systemImage: "app.dashed")
+                }
+
+                HStack {
+                    if let error = configManager.lastError {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .font(.callout)
+                    }
+                    Spacer()
+                    Button("Save") {
+                        if scope == .main {
+                            configManager.saveConfig()
+                        } else {
+                            configManager.saveLocalConfig()
+                        }
+                    }
+                    .controlSize(.large)
                 }
             }
-            .padding(16)
+            .padding(20)
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -88,30 +113,17 @@ struct GeneralView: View {
         }
     }
 
-    private func row(_ label: String, @ViewBuilder content: () -> some View) -> some View {
+    private func browserRow(
+        _ label: String, @ViewBuilder content: () -> some View
+    ) -> some View {
         HStack {
             Text(label)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 140, alignment: .leading)
             content()
+            Spacer()
         }
-    }
-
-    private var scopePicker: some View {
-        Picker("Editing", selection: $scope) {
-            Text("config.toml").tag(EditingScope.main)
-            Text("config.local.toml").tag(EditingScope.local)
-        }
-        .pickerStyle(.segmented)
-    }
-
-    private var saveButton: some View {
-        Button("Save") {
-            if scope == .main {
-                configManager.saveConfig()
-            } else {
-                configManager.saveLocalConfig()
-            }
-        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 }
 
@@ -126,13 +138,14 @@ struct OverridableField<Content: View>: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 140, alignment: .leading)
             if override != nil {
                 content(
                     Binding(
                         get: { override ?? "" },
                         set: { override = $0 }
                     ))
+                Spacer()
                 Button {
                     override = nil
                 } label: {
@@ -144,6 +157,7 @@ struct OverridableField<Content: View>: View {
             } else {
                 Text(inherited)
                     .foregroundStyle(.secondary)
+                Spacer()
                 Button("Override") {
                     override = inherited
                 }
@@ -160,21 +174,16 @@ struct BrowserPicker: View {
     @State private var browsers: [BrowserInfo] = []
 
     var body: some View {
-        HStack(spacing: 8) {
-            Picker("", selection: $selection) {
-                ForEach(browsers, id: \.bundleID) { browser in
-                    Text(browser.name).tag(browser.name)
-                }
-                if !browsers.contains(where: { $0.name == selection }) && !selection.isEmpty {
-                    Text(selection).tag(selection)
-                }
+        Picker("", selection: $selection) {
+            ForEach(browsers, id: \.bundleID) { browser in
+                Text(browser.name).tag(browser.name)
             }
-            .labelsHidden()
-            .frame(width: 180)
-
-            TextField("Custom", text: $selection)
-                .frame(width: 100)
+            if !browsers.contains(where: { $0.name == selection }) && !selection.isEmpty {
+                Text(selection).tag(selection)
+            }
         }
+        .labelsHidden()
+        .frame(width: 200)
         .onAppear {
             browsers = getInstalledBrowsers()
         }

@@ -18,16 +18,20 @@ struct ScheduleView: View {
                 }
                 .pickerStyle(.segmented)
 
-                GroupBox("Work Hours") {
-                    VStack(alignment: .leading, spacing: 12) {
+                // Work Hours
+                GroupBox {
+                    VStack(spacing: 0) {
                         if scope == .main {
-                            row("Start Time") {
+                            scheduleRow("Start Time") {
                                 TextField("9:00", text: $cm.workStartTime)
-                                    .frame(width: 100)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 120)
                             }
-                            row("End Time") {
+                            Divider().padding(.horizontal, -4)
+                            scheduleRow("End Time") {
                                 TextField("18:00", text: $cm.workEndTime)
-                                    .frame(width: 100)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 120)
                             }
                         } else {
                             OverridableTextField(
@@ -36,6 +40,7 @@ struct ScheduleView: View {
                                 inherited: configManager.workStartTime,
                                 override: $cm.localWorkStartTime
                             )
+                            Divider().padding(.horizontal, -4)
                             OverridableTextField(
                                 label: "End Time",
                                 placeholder: "18:00",
@@ -45,28 +50,37 @@ struct ScheduleView: View {
                         }
 
                         if isNightShift {
-                            Label(
-                                "Night shift detected (hours span midnight)",
-                                systemImage: "moon.fill"
-                            )
-                            .foregroundStyle(.secondary)
-                            .font(.callout)
+                            Divider().padding(.horizontal, -4)
+                            HStack {
+                                Label(
+                                    "Night shift detected (hours span midnight)",
+                                    systemImage: "moon.fill"
+                                )
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
                         }
                     }
-                    .padding(8)
+                } label: {
+                    Label("Work Hours", systemImage: "clock")
                 }
 
-                GroupBox("Work Days") {
-                    VStack(alignment: .leading, spacing: 12) {
+                // Work Days
+                GroupBox {
+                    VStack(spacing: 0) {
                         if scope == .main {
-                            row("Start Day") {
+                            scheduleRow("Start Day") {
                                 Picker("", selection: $cm.workStartDay) {
                                     ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
                                 }
                                 .labelsHidden()
                                 .frame(width: 120)
                             }
-                            row("End Day") {
+                            Divider().padding(.horizontal, -4)
+                            scheduleRow("End Day") {
                                 Picker("", selection: $cm.workEndDay) {
                                     ForEach(dayOptions, id: \.self) { Text($0).tag($0) }
                                 }
@@ -80,6 +94,7 @@ struct ScheduleView: View {
                                 override: $cm.localWorkStartDay,
                                 options: dayOptions
                             )
+                            Divider().padding(.horizontal, -4)
                             OverridableDayPicker(
                                 label: "End Day",
                                 inherited: configManager.workEndDay,
@@ -88,31 +103,38 @@ struct ScheduleView: View {
                             )
                         }
                     }
-                    .padding(8)
+                } label: {
+                    Label("Work Days", systemImage: "calendar")
                 }
 
-                GroupBox("Status") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(
-                                systemName: isCurrentlyWorkTime ? "briefcase.fill" : "house.fill"
-                            )
-                            .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
-                            Text(
-                                isCurrentlyWorkTime
-                                    ? "Currently in work hours" : "Currently in personal hours"
-                            )
-                        }
+                // Status
+                GroupBox {
+                    HStack(spacing: 12) {
+                        Image(
+                            systemName: isCurrentlyWorkTime ? "briefcase.fill" : "house.fill"
+                        )
+                        .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
+                        .font(.title3)
+                        Text(
+                            isCurrentlyWorkTime
+                                ? "Currently in work hours" : "Currently in personal hours"
+                        )
+
+                        Spacer()
 
                         if !configManager.validation.isValid {
-                            ForEach(configManager.validation.errors, id: \.self) { error in
-                                Label(error, systemImage: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(.red)
-                                    .font(.callout)
+                            VStack(alignment: .trailing, spacing: 4) {
+                                ForEach(configManager.validation.errors, id: \.self) { error in
+                                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                                        .foregroundStyle(.red)
+                                        .font(.callout)
+                                }
                             }
                         }
                     }
-                    .padding(8)
+                    .padding(4)
+                } label: {
+                    Label("Status", systemImage: "info.circle")
                 }
 
                 HStack {
@@ -124,18 +146,24 @@ struct ScheduleView: View {
                             configManager.saveLocalConfig()
                         }
                     }
+                    .controlSize(.large)
                 }
             }
-            .padding(16)
+            .padding(20)
         }
     }
 
-    private func row(_ label: String, @ViewBuilder content: () -> some View) -> some View {
+    private func scheduleRow(
+        _ label: String, @ViewBuilder content: () -> some View
+    ) -> some View {
         HStack {
             Text(label)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 140, alignment: .leading)
             content()
+            Spacer()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     private var isNightShift: Bool {
@@ -167,7 +195,7 @@ private struct OverridableTextField: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 140, alignment: .leading)
             if override != nil {
                 TextField(
                     placeholder,
@@ -176,7 +204,8 @@ private struct OverridableTextField: View {
                         set: { override = $0 }
                     )
                 )
-                .frame(width: 100)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 120)
                 Button {
                     override = nil
                 } label: {
@@ -190,7 +219,10 @@ private struct OverridableTextField: View {
                 Button("Override") { override = inherited }
                     .controlSize(.small)
             }
+            Spacer()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 }
 
@@ -203,7 +235,7 @@ private struct OverridableDayPicker: View {
     var body: some View {
         HStack {
             Text(label)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 140, alignment: .leading)
             if override != nil {
                 Picker(
                     "",
@@ -229,6 +261,9 @@ private struct OverridableDayPicker: View {
                 Button("Override") { override = inherited }
                     .controlSize(.small)
             }
+            Spacer()
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 }

@@ -332,8 +332,17 @@ public class ConfigManager {
             table["urls"] = urls
         }
 
-        return table.convert()
+        return table.convert(to: .toml, options: Self.tomlFormatOptions)
     }
+
+    private static let tomlFormatOptions: FormatOptions = [
+        .allowMultilineStrings,
+        .allowUnicodeStrings,
+        .allowBinaryIntegers,
+        .allowOctalIntegers,
+        .allowHexadecimalIntegers,
+        .indentations,
+    ]
 
     private func buildLocalConfigTOML() -> String {
         let table = TOMLTable()
@@ -370,6 +379,6 @@ public class ConfigManager {
             table["urls"] = urls
         }
 
-        return table.convert()
+        return table.convert(to: .toml, options: Self.tomlFormatOptions)
     }
 }

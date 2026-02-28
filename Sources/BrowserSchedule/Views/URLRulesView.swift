@@ -43,23 +43,13 @@ struct URLRulesView: View {
                     )
                 }
 
-                HStack {
-                    if let error = configManager.lastError {
-                        Label(error, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                            .font(.callout)
-                    }
-                    Spacer()
-                    Button("Save") {
-                        if scope == .main {
-                            configManager.saveConfig()
-                        } else {
-                            configManager.saveLocalConfig()
-                        }
-                    }
+                if let error = configManager.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.callout)
                 }
             }
-            .padding(16)
+            .padding(20)
         }
     }
 
@@ -73,38 +63,49 @@ struct URLRulesView: View {
     ) -> some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 8) {
-                Text("URLs containing these patterns always open in **\(browserName)**")
+                Text("Patterns always open in **\(browserName)**")
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
-                VStack(spacing: 2) {
-                    ForEach(Array(urls.wrappedValue.enumerated()), id: \.offset) { index, pattern in
+                VStack(spacing: 0) {
+                    if urls.wrappedValue.isEmpty {
                         HStack {
-                            Text(pattern)
-                                .font(.body.monospaced())
                             Spacer()
-                            Button {
-                                urls.wrappedValue.remove(at: index)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.borderless)
+                            Text("No patterns")
+                                .foregroundStyle(.tertiary)
+                                .font(.callout)
+                            Spacer()
                         }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(
-                            index % 2 == 0
-                                ? Color.clear
-                                : Color.primary.opacity(0.03)
-                        )
+                        .padding(.vertical, 20)
+                    } else {
+                        ForEach(
+                            Array(urls.wrappedValue.enumerated()), id: \.offset
+                        ) { index, pattern in
+                            if index > 0 {
+                                Divider()
+                            }
+                            HStack {
+                                Text(pattern)
+                                    .font(.body.monospaced())
+                                Spacer()
+                                Button {
+                                    urls.wrappedValue.remove(at: index)
+                                    autoSave()
+                                } label: {
+                                    Image(systemName: "minus.circle.fill")
+                                        .foregroundStyle(.red)
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 8)
+                        }
                     }
                 }
-                .frame(minHeight: 80)
                 .background(Color.primary.opacity(0.03))
                 .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                HStack {
+                HStack(spacing: 8) {
                     TextField("URL pattern", text: newURL)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit { addURL(urls: urls, newURL: newURL) }
@@ -112,6 +113,7 @@ struct URLRulesView: View {
                         addURL(urls: urls, newURL: newURL)
                     } label: {
                         Image(systemName: "plus.circle.fill")
+                            .foregroundStyle(Color.accentColor)
                     }
                     .buttonStyle(.borderless)
                     .disabled(newURL.wrappedValue.isEmpty)
@@ -121,6 +123,7 @@ struct URLRulesView: View {
         } label: {
             Label(title, systemImage: icon)
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func addURL(urls: Binding<[String]>, newURL: Binding<String>) {
@@ -128,6 +131,15 @@ struct URLRulesView: View {
         guard !trimmed.isEmpty else { return }
         urls.wrappedValue.append(trimmed)
         newURL.wrappedValue = ""
+        autoSave()
+    }
+
+    private func autoSave() {
+        if scope == .main {
+            configManager.saveConfig()
+        } else {
+            configManager.saveLocalConfig()
+        }
     }
 
     private var personalUrlsBinding: Binding<[String]> {
