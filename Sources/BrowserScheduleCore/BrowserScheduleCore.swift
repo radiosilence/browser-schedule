@@ -219,6 +219,18 @@ public struct LocalConfig: Codable {
     public let workTime: Config.WorkTime?
     public let workDays: Config.WorkDays?
 
+    public init(
+        browsers: Config.Browsers? = nil,
+        urls: Config.OverrideUrls? = nil,
+        workTime: Config.WorkTime? = nil,
+        workDays: Config.WorkDays? = nil
+    ) {
+        self.browsers = browsers
+        self.urls = urls
+        self.workTime = workTime
+        self.workDays = workDays
+    }
+
     enum CodingKeys: String, CodingKey {
         case browsers
         case urls

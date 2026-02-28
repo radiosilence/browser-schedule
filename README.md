@@ -1,8 +1,8 @@
-# 🌐 Browser Schedule
+# Browser Schedule
 
 [![CI](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml)
 
-Automatically switches default browser based on time, day, and URL patterns. Built for macOS with Swift and TOML configuration.
+Automatically switches default browser based on time, day, and URL patterns. Built for macOS 14+ with Swift and SwiftUI.
 
 ## Installation
 
@@ -11,8 +11,8 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
 2. Mount the DMG and drag BrowserSchedule.app to Applications
 3. Remove quarantine protection: `xattr -d com.apple.quarantine /Applications/BrowserSchedule.app`
-4. **Double-click the app** to set it as your default browser
-5. Configure via `~/.config/browser-schedule/config.toml`
+4. **Double-click the app** to open the settings UI and set it as your default browser
+5. Configure browsers, schedule, and URL rules from the UI
 
 ### Option 2: Build from Source (Recommended - Safer)
 
@@ -22,18 +22,20 @@ task install
 
 This builds the app, creates the macOS app bundle, and sets up configuration files.
 
-### Setting as Default Browser
+## Settings UI
 
-After installation, **double-click BrowserSchedule.app** in Applications to:
+Double-clicking the app opens a full settings window with four tabs:
 
-- Set it as your default browser (if not already set)
-- See confirmation that it's active and routing URLs correctly
+- **General** - Pick work/personal browsers from installed apps, set as default browser
+- **Schedule** - Configure work hours and days, see current work/personal status
+- **URL Rules** - Add URL patterns that always route to a specific browser
+- **Config Files** - Edit raw TOML config files directly (both main and local override)
 
-The app will show a dialog confirming the setup or current status.
+When invoked via URL (as the default browser), the app handles the URL silently in the background without showing any UI.
 
 ## How It Works
 
-BrowserSchedule registers as your default browser and routes URLs to work (Chrome) or personal (Zen) browsers based on:
+BrowserSchedule registers as your default browser and routes URLs to work or personal browsers based on:
 
 1. **URL fragment overrides** (highest priority)
 2. **Time/day-based work schedule detection**
@@ -41,7 +43,7 @@ BrowserSchedule registers as your default browser and routes URLs to work (Chrom
 
 ## Configuration
 
-Edit `~/.config/browser-schedule/config.toml`:
+Configure via the Settings UI, or edit `~/.config/browser-schedule/config.toml` directly:
 
 ```toml
 [browsers]
@@ -61,11 +63,17 @@ start = "Mon"
 end = "Fri"
 ```
 
+### Private Overrides
+
+Create `~/.config/browser-schedule/config.local.toml` for private overrides that aren't checked into git. URL arrays are merged; everything else is replaced.
+
 ### Features
 
+- [x] **Settings UI**: Full SwiftUI settings window for all configuration
 - [x] **URL overrides**: Specific URL fragments always open in designated browser
-- [x] **Private overrides**: Create `config.local.toml` with same format (merged with main config, git-ignored)
-- [x] **Reasonable .app behaviour**: Double-clicking the app sets it as default browser
+- [x] **Private overrides**: `config.local.toml` merges with main config, git-ignored
+- [x] **Browser detection**: Auto-discovers installed browsers for easy picker selection
+- [x] **Night shift support**: Work hours can span midnight
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
 - [ ] **Homebrew Cask**: Install without build tools (tap repo needed)
 - [ ] **App Icon**: It should look nice or something
@@ -84,14 +92,14 @@ task test-all       # Run both unit and integration tests
 
 ### Architecture
 
-- **`BrowserScheduleCore`** - Testable Swift module with all logic
-- **`BrowserSchedule`** - Thin executable wrapper for CLI and app bundle
-- **Comprehensive test suite** - Covers time parsing, config validation, work time detection, browser selection, and edge cases
+- **`BrowserScheduleCore`** - Testable Swift module: config loading/saving, URL routing, schedule logic, browser enumeration
+- **`BrowserSchedule`** - SwiftUI settings UI + NSApplication URL handler
+- **`BrowserScheduleCLI`** - CLI interface for headless management
 
 ### Commands
 
 - `task build` - Build Swift executable
-- `task build-dmg` - Build distributable DMG in `./build/BrowserSchedule.dmg`
+- `task build-dmg` - Build distributable DMG
 - `task release -- patch|minor|major` - Create and push semantic version release
 - `task install` - Install app bundle and register as default browser
 - `task update` - Update existing app bundle
@@ -107,16 +115,11 @@ task test-all       # Run both unit and integration tests
 
 ### Shell Completions
 
-BrowserSchedule includes built-in shell completion support for bash, zsh, and fish:
-
 ```sh
-# Or generate manually for any shell
 task completions -- fish > ~/.config/fish/completions/browser-schedule.fish
 task completions -- zsh > ~/.zsh/completion/_browser-schedule
 task completions -- bash > ~/.bash_completions/browser-schedule
 ```
-
-After installation, you'll get tab completion for subcommands (`config`, `set-default`) and help flags.
 
 ### Viewing Logs
 
