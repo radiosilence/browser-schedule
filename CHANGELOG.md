@@ -1,15 +1,12 @@
 # Changelog
 
-## v1.2.4
+## v1.3.0
 
 ### Changed
 
-- **Single-pane config editor** — Config Files tab now shows one editor at a time, switching based on the centralized scope picker. Removes the redundant HSplitView since scope selection already lives above the tab bar.
-
-## v1.2.3
-
-### Changed
-
+- **Responsive layout** — UI scales with window size instead of staying fixed-width. Schedule grid grows vertically, all sections fill the window width.
+- **GroupBox sections** — replaced `Form` + `.formStyle(.grouped)` (which caps width at ~600px on macOS) with `GroupBox`-based sections that stretch naturally. Custom `SettingsRowStyle` ensures label-left/content-right alignment.
+- **Single-pane config editor** — Config Files tab shows one editor at a time based on the centralized scope picker, removing the redundant split view.
 - **Week schedule grid** — replaced the single-day timeline bar with a 7-column weekly grid showing work hours per day, with dimmed non-work days and a red current-time marker on today's column
 
 ## v1.2.2
