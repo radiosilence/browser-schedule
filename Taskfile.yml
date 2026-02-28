@@ -245,6 +245,7 @@ tasks:
       - cp .build/release/BrowserScheduleCLI ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
+      - codesign -s - --deep --force ./.build/pkg/BrowserSchedule.app
 
   release:
     desc: "Create and push a semantic version release (usage: task release -- major|minor|patch)"

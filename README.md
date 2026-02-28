@@ -10,21 +10,28 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 
 ## Installation
 
-### Option 1: Direct Download
+### Homebrew (Recommended)
+
+```sh
+brew install radiosilence/browser-schedule/browser-schedule
+```
+
+Handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
+
+### Direct Download
 
 1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
 2. Mount the DMG and drag BrowserSchedule.app to Applications
-3. Remove quarantine protection: `xattr -d com.apple.quarantine /Applications/BrowserSchedule.app`
-4. **Double-click the app** to open the settings UI and set it as your default browser
-5. Configure browsers, schedule, and URL rules from the UI
+3. Remove quarantine: `xattr -cr /Applications/BrowserSchedule.app`
+4. **Double-click the app** to open settings and set as default browser
 
-### Option 2: Build from Source (Recommended - Safer)
+### Build from Source
 
 ```sh
 task install
 ```
 
-This builds the app, creates the macOS app bundle, and sets up configuration files.
+Builds, ad-hoc signs, creates the app bundle, and installs to `/Applications`.
 
 ## Settings UI
 
@@ -79,7 +86,7 @@ Create `~/.config/browser-schedule/config.local.toml` for private overrides that
 - [x] **Browser detection**: Auto-discovers installed browsers for easy picker selection
 - [x] **Night shift support**: Work hours can span midnight
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
-- [ ] **Homebrew Cask**: Install without build tools (tap repo needed)
+- [x] **Homebrew Cask**: `brew install radiosilence/browser-schedule/browser-schedule`
 - [x] **App Icon**: Clock with work/personal arcs and globe badge, generated via Core Graphics
 
 ## Development

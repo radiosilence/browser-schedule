@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## v1.1.0
 
 ### Added
 
+- **Homebrew Cask** — `brew install radiosilence/browser-schedule/browser-schedule`, auto-strips quarantine on install
+- **Ad-hoc code signing** — app bundle is now signed during build, enabling right-click → Open without `xattr` workarounds
 - **Full SwiftUI settings UI** — replaces the old "set default browser" alert with a proper tabbed settings window
   - **General tab**: browser pickers (auto-discovers installed browsers), default browser status/registration
   - **Schedule tab**: work hours and days editor with night shift detection, live status indicator

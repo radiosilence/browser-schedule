@@ -1,5 +1,5 @@
 cask "browser-schedule" do
-  version "1.0.0"
+  version :latest
   sha256 :no_check
 
   url "https://github.com/radiosilence/browser-schedule/releases/latest/download/BrowserSchedule.dmg"
@@ -7,17 +7,13 @@ cask "browser-schedule" do
   desc "Automatic browser switching based on time, day, and URL patterns"
   homepage "https://github.com/radiosilence/browser-schedule"
 
-  livecheck do
-    url :url
-    strategy :github_latest
-  end
+  depends_on macos: ">= :sonoma"
 
   app "BrowserSchedule.app"
 
   postflight do
-    system_command "#{appdir}/BrowserSchedule.app/Contents/MacOS/browser-schedule",
-                   args: ["--set-default"],
-                   sudo: false
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "#{appdir}/BrowserSchedule.app"]
   end
 
   uninstall_postflight do
