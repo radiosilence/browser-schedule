@@ -7,7 +7,7 @@ struct ConfigEditorView: View {
     var body: some View {
         @Bindable var cm = configManager
 
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             HSplitView {
                 // Main config pane
                 VStack(alignment: .leading, spacing: 8) {
@@ -18,9 +18,6 @@ struct ConfigEditorView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Save") {
-                            configManager.saveRawConfig()
-                        }
                     }
 
                     TOMLEditorView(text: $cm.rawConfigTOML)
@@ -42,16 +39,6 @@ struct ConfigEditorView: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                         Spacer()
-
-                        if configManager.hasLocalConfig {
-                            Button("Delete") {
-                                configManager.deleteLocalConfig()
-                            }
-                            .foregroundStyle(.red)
-                            Button("Save") {
-                                configManager.saveRawLocalConfig()
-                            }
-                        }
                     }
 
                     if configManager.hasLocalConfig {
@@ -82,7 +69,9 @@ struct ConfigEditorView: View {
                         .frame(maxWidth: .infinity)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(.separator.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                                .strokeBorder(
+                                    .separator.opacity(0.5),
+                                    style: StrokeStyle(lineWidth: 1, dash: [5]))
                         )
                     }
                 }
@@ -90,7 +79,7 @@ struct ConfigEditorView: View {
                 .frame(minWidth: 280)
             }
 
-            HStack {
+            footerBar {
                 if let error = configManager.lastError {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
@@ -98,12 +87,26 @@ struct ConfigEditorView: View {
                         .lineLimit(2)
                 }
                 Spacer()
+                if configManager.hasLocalConfig {
+                    Button("Delete Local Config") {
+                        configManager.deleteLocalConfig()
+                    }
+                    .foregroundStyle(.red)
+                }
                 Button("Reload from Disk") {
                     configManager.reload()
                 }
+                Button("Save Main") {
+                    configManager.saveRawConfig()
+                }
+                .controlSize(.large)
+                if configManager.hasLocalConfig {
+                    Button("Save Local") {
+                        configManager.saveRawLocalConfig()
+                    }
+                    .controlSize(.large)
+                }
             }
-            .padding(.horizontal, 10)
         }
-        .padding(.top, 8)
     }
 }

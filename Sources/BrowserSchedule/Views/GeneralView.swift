@@ -10,101 +10,105 @@ struct GeneralView: View {
     var body: some View {
         @Bindable var cm = configManager
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                // Default Browser status
-                GroupBox {
-                    HStack(spacing: 12) {
-                        Image(
-                            systemName: configManager.isDefaultBrowserStatus
-                                ? "checkmark.circle.fill" : "xmark.circle.fill"
-                        )
-                        .foregroundStyle(configManager.isDefaultBrowserStatus ? .green : .red)
-                        .font(.title2)
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    // Default Browser status
+                    GroupBox {
+                        HStack(spacing: 12) {
+                            Image(
+                                systemName: configManager.isDefaultBrowserStatus
+                                    ? "checkmark.circle.fill" : "xmark.circle.fill"
+                            )
+                            .foregroundStyle(
+                                configManager.isDefaultBrowserStatus ? .green : .red
+                            )
+                            .font(.title2)
 
-                        Text(
-                            configManager.isDefaultBrowserStatus
-                                ? "BrowserSchedule is the default browser"
-                                : "BrowserSchedule is not the default browser")
+                            Text(
+                                configManager.isDefaultBrowserStatus
+                                    ? "BrowserSchedule is the default browser"
+                                    : "BrowserSchedule is not the default browser")
 
-                        Spacer()
+                            Spacer()
 
-                        Button("Set as Default Browser") {
-                            do {
-                                try registerAppBundle()
-                                try setAsDefaultBrowser()
-                                configManager.refreshDefaultBrowserStatus()
-                            } catch {
-                                errorMessage = error.localizedDescription
-                                showError = true
+                            Button("Set as Default Browser") {
+                                do {
+                                    try registerAppBundle()
+                                    try setAsDefaultBrowser()
+                                    configManager.refreshDefaultBrowserStatus()
+                                } catch {
+                                    errorMessage = error.localizedDescription
+                                    showError = true
+                                }
+                            }
+                            .disabled(configManager.isDefaultBrowserStatus)
+                        }
+                        .padding(4)
+                    } label: {
+                        Label("Default Browser", systemImage: "globe")
+                    }
+
+                    Picker("Editing", selection: $scope) {
+                        Text("config.toml").tag(EditingScope.main)
+                        Text("config.local.toml").tag(EditingScope.local)
+                    }
+                    .pickerStyle(.segmented)
+
+                    // Browsers
+                    GroupBox {
+                        VStack(spacing: 0) {
+                            if scope == .main {
+                                browserRow("Work Browser") {
+                                    BrowserPicker(selection: $cm.workBrowser)
+                                }
+                                Divider().padding(.horizontal, -4)
+                                browserRow("Personal Browser") {
+                                    BrowserPicker(selection: $cm.personalBrowser)
+                                }
+                            } else {
+                                OverridableField(
+                                    label: "Work Browser",
+                                    inherited: configManager.workBrowser,
+                                    override: $cm.localWorkBrowser
+                                ) { binding in
+                                    BrowserPicker(selection: binding)
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 10)
+                                Divider().padding(.horizontal, -4)
+                                OverridableField(
+                                    label: "Personal Browser",
+                                    inherited: configManager.personalBrowser,
+                                    override: $cm.localPersonalBrowser
+                                ) { binding in
+                                    BrowserPicker(selection: binding)
+                                }
+                                .padding(.horizontal, 12).padding(.vertical, 10)
                             }
                         }
-                        .disabled(configManager.isDefaultBrowserStatus)
+                    } label: {
+                        Label("Browsers", systemImage: "app.dashed")
                     }
-                    .padding(4)
-                } label: {
-                    Label("Default Browser", systemImage: "globe")
                 }
-
-                Picker("Editing", selection: $scope) {
-                    Text("config.toml").tag(EditingScope.main)
-                    Text("config.local.toml").tag(EditingScope.local)
-                }
-                .pickerStyle(.segmented)
-
-                // Browsers
-                GroupBox {
-                    VStack(spacing: 0) {
-                        if scope == .main {
-                            browserRow("Work Browser") {
-                                BrowserPicker(selection: $cm.workBrowser)
-                            }
-                            Divider().padding(.horizontal, -4)
-                            browserRow("Personal Browser") {
-                                BrowserPicker(selection: $cm.personalBrowser)
-                            }
-                        } else {
-                            OverridableField(
-                                label: "Work Browser",
-                                inherited: configManager.workBrowser,
-                                override: $cm.localWorkBrowser
-                            ) { binding in
-                                BrowserPicker(selection: binding)
-                            }
-                            .padding(.horizontal, 12).padding(.vertical, 10)
-                            Divider().padding(.horizontal, -4)
-                            OverridableField(
-                                label: "Personal Browser",
-                                inherited: configManager.personalBrowser,
-                                override: $cm.localPersonalBrowser
-                            ) { binding in
-                                BrowserPicker(selection: binding)
-                            }
-                            .padding(.horizontal, 12).padding(.vertical, 10)
-                        }
-                    }
-                } label: {
-                    Label("Browsers", systemImage: "app.dashed")
-                }
-
-                HStack {
-                    if let error = configManager.lastError {
-                        Label(error, systemImage: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                            .font(.callout)
-                    }
-                    Spacer()
-                    Button("Save") {
-                        if scope == .main {
-                            configManager.saveConfig()
-                        } else {
-                            configManager.saveLocalConfig()
-                        }
-                    }
-                    .controlSize(.large)
-                }
+                .padding(20)
             }
-            .padding(20)
+
+            footerBar {
+                if let error = configManager.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .font(.callout)
+                }
+                Spacer()
+                Button("Save") {
+                    if scope == .main {
+                        configManager.saveConfig()
+                    } else {
+                        configManager.saveLocalConfig()
+                    }
+                }
+                .controlSize(.large)
+            }
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -187,5 +191,18 @@ struct BrowserPicker: View {
         .onAppear {
             browsers = getInstalledBrowsers()
         }
+    }
+}
+
+// MARK: - Footer Bar
+
+func footerBar(@ViewBuilder content: () -> some View) -> some View {
+    VStack(spacing: 0) {
+        Divider()
+        HStack {
+            content()
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 }
