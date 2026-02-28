@@ -95,18 +95,24 @@ struct ScheduleView: View {
         Label("Work Days", systemImage: "calendar")
       }
 
-      // Timeline
+      // Weekly schedule grid
       Section {
-        TimelineBar(
+        WeekScheduleGrid(
           startTime: scope == .local
             ? (configManager.localWorkStartTime ?? configManager.workStartTime)
             : configManager.workStartTime,
           endTime: scope == .local
             ? (configManager.localWorkEndTime ?? configManager.workEndTime)
-            : configManager.workEndTime
+            : configManager.workEndTime,
+          startDay: scope == .local
+            ? (configManager.localWorkStartDay ?? configManager.workStartDay)
+            : configManager.workStartDay,
+          endDay: scope == .local
+            ? (configManager.localWorkEndDay ?? configManager.workEndDay)
+            : configManager.workEndDay
         )
       } header: {
-        Label("Schedule Overview", systemImage: "chart.bar.fill")
+        Label("Schedule Overview", systemImage: "calendar.badge.clock")
       }
 
       // Status
@@ -207,15 +213,24 @@ struct ScheduleView: View {
   }
 }
 
-// MARK: - Timeline Bar
+// MARK: - Week Schedule Grid
 
-private struct TimelineBar: View {
+private struct WeekScheduleGrid: View {
   let startTime: String
   let endTime: String
+  let startDay: String
+  let endDay: String
+
+  private static let days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  private static let hours = [0, 6, 12, 18, 24]
 
   private var startMinutes: Int { parseTime(startTime) ?? 0 }
   private var endMinutes: Int { parseTime(endTime) ?? 0 }
   private var isNightShift: Bool { startMinutes >= endMinutes }
+
+  private var currentWeekday: Int {
+    Calendar.current.component(.weekday, from: Date())
+  }
 
   private var currentMinutes: Int {
     let cal = Calendar.current
@@ -223,63 +238,94 @@ private struct TimelineBar: View {
     return cal.component(.hour, from: now) * 60 + cal.component(.minute, from: now)
   }
 
+  private func isWorkDay(_ dayName: String) -> Bool {
+    guard let day = dayNameToWeekday(dayName),
+      let startWd = dayNameToWeekday(startDay),
+      let endWd = dayNameToWeekday(endDay)
+    else { return false }
+    if startWd <= endWd {
+      return day >= startWd && day <= endWd
+    } else {
+      return day >= startWd || day <= endWd
+    }
+  }
+
+  private func isToday(_ dayName: String) -> Bool {
+    dayNameToWeekday(dayName) == currentWeekday
+  }
+
   var body: some View {
-    VStack(spacing: 4) {
-      GeometryReader { geo in
-        let w = geo.size.width
-
-        ZStack(alignment: .leading) {
-          // Personal hours background
-          RoundedRectangle(cornerRadius: 4)
-            .fill(Color.green.opacity(0.2))
-            .frame(height: 24)
-
-          // Work segment(s)
-          if isNightShift {
-            // Night shift: two segments at edges
-            HStack(spacing: 0) {
-              Rectangle()
-                .fill(Color.blue.opacity(0.35))
-                .frame(width: w * CGFloat(endMinutes) / 1440.0)
-              Spacer()
-              Rectangle()
-                .fill(Color.blue.opacity(0.35))
-                .frame(width: w * CGFloat(1440 - startMinutes) / 1440.0)
-            }
-            .frame(height: 24)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-          } else {
-            // Day shift: single segment
-            Rectangle()
-              .fill(Color.blue.opacity(0.35))
-              .frame(
-                width: w * CGFloat(endMinutes - startMinutes) / 1440.0,
-                height: 24
-              )
-              .offset(x: w * CGFloat(startMinutes) / 1440.0)
+    VStack(spacing: 0) {
+      // Grid: hour labels on left, 7 day columns
+      HStack(alignment: .top, spacing: 0) {
+        // Hour labels column
+        VStack(alignment: .trailing, spacing: 0) {
+          ForEach(Self.hours, id: \.self) { hour in
+            Text("\(hour)")
+              .font(.caption2)
+              .foregroundStyle(.secondary)
+              .frame(height: hour == 24 ? 0 : 20, alignment: .top)
           }
+        }
+        .frame(width: 20)
+        .offset(y: -4)
 
-          // Current time marker
-          Rectangle()
-            .fill(Color.red)
-            .frame(width: 2, height: 28)
-            .offset(x: w * CGFloat(currentMinutes) / 1440.0 - 1)
+        // Day columns
+        ForEach(Self.days, id: \.self) { day in
+          VStack(spacing: 3) {
+            // Day label
+            Text(day)
+              .font(.caption2)
+              .fontWeight(isToday(day) ? .bold : .regular)
+              .foregroundStyle(isToday(day) ? .primary : .secondary)
+
+            // 24-hour bar
+            GeometryReader { geo in
+              let h = geo.size.height
+              let workDay = isWorkDay(day)
+
+              ZStack(alignment: .top) {
+                // Background
+                RoundedRectangle(cornerRadius: 3)
+                  .fill(Color.green.opacity(workDay ? 0.15 : 0.08))
+
+                if workDay {
+                  // Work hours fill
+                  if isNightShift {
+                    VStack(spacing: 0) {
+                      // Top segment (midnight to end)
+                      Rectangle()
+                        .fill(Color.blue.opacity(0.4))
+                        .frame(height: h * CGFloat(endMinutes) / 1440.0)
+                      Spacer()
+                      // Bottom segment (start to midnight)
+                      Rectangle()
+                        .fill(Color.blue.opacity(0.4))
+                        .frame(height: h * CGFloat(1440 - startMinutes) / 1440.0)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 3))
+                  } else {
+                    Rectangle()
+                      .fill(Color.blue.opacity(0.4))
+                      .frame(height: h * CGFloat(endMinutes - startMinutes) / 1440.0)
+                      .offset(y: h * CGFloat(startMinutes) / 1440.0)
+                  }
+                }
+
+                // Current time marker (only on today)
+                if isToday(day) {
+                  Rectangle()
+                    .fill(Color.red)
+                    .frame(height: 2)
+                    .offset(y: h * CGFloat(currentMinutes) / 1440.0 - 1)
+                }
+              }
+            }
+          }
+          .frame(maxWidth: .infinity)
         }
       }
-      .frame(height: 28)
-
-      // Hour labels
-      HStack {
-        Text("0").font(.caption2).foregroundStyle(.secondary)
-        Spacer()
-        Text("6").font(.caption2).foregroundStyle(.secondary)
-        Spacer()
-        Text("12").font(.caption2).foregroundStyle(.secondary)
-        Spacer()
-        Text("18").font(.caption2).foregroundStyle(.secondary)
-        Spacer()
-        Text("24").font(.caption2).foregroundStyle(.secondary)
-      }
+      .frame(height: 110)
     }
     .padding(.vertical, 4)
   }

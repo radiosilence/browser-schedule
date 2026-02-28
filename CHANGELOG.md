@@ -1,5 +1,21 @@
 # Changelog
 
+## v1.2.2
+
+### Fixed
+
+- **Wrapping day ranges** — Mon-Sun, Fri-Tue etc now work correctly. `isWorkTime()` was using simple `>=`/`<=` comparison which fails when start weekday > end weekday in Apple's Calendar convention (Sun=1). Uses the same `||` pattern as night shift hours.
+
+## v1.2.1
+
+### Fixed
+
+- **Day range validation** — removed bogus "Mon is after Sun" error caused by Apple Calendar's Sun=1 convention. Wrapping day ranges are valid use cases.
+
+### Changed
+
+- Smaller app icon globe (0.32 → 0.27 radius) for better visual balance
+
 ## v1.2.0
 
 ### Fixed
