@@ -182,19 +182,42 @@ struct BrowserPicker: View {
     @State private var browsers: [BrowserInfo] = []
 
     var body: some View {
-        Picker("", selection: $selection) {
-            ForEach(browsers, id: \.bundleID) { browser in
-                Text(browser.name).tag(browser.name)
+        HStack(spacing: 6) {
+            Picker("", selection: $selection) {
+                ForEach(browsers, id: \.bundleID) { browser in
+                    Text(browser.name).tag(browser.name)
+                }
+                if !browsers.contains(where: { $0.name == selection })
+                    && !selection.isEmpty
+                {
+                    Text(selection).tag(selection)
+                }
             }
-            if !browsers.contains(where: { $0.name == selection }) && !selection.isEmpty {
-                Text(selection).tag(selection)
+            .labelsHidden()
+            .frame(width: 180)
+
+            Button("Other\u{2026}") {
+                pickApplication()
             }
+            .controlSize(.small)
         }
-        .labelsHidden()
-        .frame(width: 200)
         .onAppear {
             browsers = getInstalledBrowsers()
         }
+    }
+
+    private func pickApplication() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose Application"
+        panel.allowedContentTypes = [.application]
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let name =
+            Bundle(url: url)?.object(forInfoDictionaryKey: "CFBundleName") as? String
+            ?? url.deletingPathExtension().lastPathComponent
+        selection = name
     }
 }
 
