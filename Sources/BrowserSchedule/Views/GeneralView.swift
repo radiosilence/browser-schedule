@@ -10,8 +10,8 @@ struct GeneralView: View {
     var body: some View {
         @Bindable var cm = configManager
 
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
                 GroupBox("Default Browser") {
                     HStack {
                         Image(
@@ -42,18 +42,16 @@ struct GeneralView: View {
                     }
                     .padding(8)
                 }
-            }
 
-            Section {
                 scopePicker
 
                 GroupBox("Browsers") {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 12) {
                         if scope == .main {
-                            LabeledContent("Work Browser") {
+                            row("Work Browser") {
                                 BrowserPicker(selection: $cm.workBrowser)
                             }
-                            LabeledContent("Personal Browser") {
+                            row("Personal Browser") {
                                 BrowserPicker(selection: $cm.personalBrowser)
                             }
                         } else {
@@ -81,12 +79,20 @@ struct GeneralView: View {
                     .padding(8)
                 }
             }
+            .padding(16)
         }
-        .formStyle(.grouped)
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
         } message: {
             Text(errorMessage ?? "Unknown error")
+        }
+    }
+
+    private func row(_ label: String, @ViewBuilder content: () -> some View) -> some View {
+        HStack {
+            Text(label)
+                .frame(width: 120, alignment: .leading)
+            content()
         }
     }
 
@@ -118,30 +124,30 @@ struct OverridableField<Content: View>: View {
     @ViewBuilder let content: (Binding<String>) -> Content
 
     var body: some View {
-        LabeledContent(label) {
-            HStack(spacing: 8) {
-                if override != nil {
-                    content(
-                        Binding(
-                            get: { override ?? "" },
-                            set: { override = $0 }
-                        ))
-                    Button {
-                        override = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Clear override, inherit from config.toml")
-                } else {
-                    Text(inherited)
+        HStack {
+            Text(label)
+                .frame(width: 120, alignment: .leading)
+            if override != nil {
+                content(
+                    Binding(
+                        get: { override ?? "" },
+                        set: { override = $0 }
+                    ))
+                Button {
+                    override = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
-                    Button("Override") {
-                        override = inherited
-                    }
-                    .controlSize(.small)
                 }
+                .buttonStyle(.plain)
+                .help("Clear override, inherit from config.toml")
+            } else {
+                Text(inherited)
+                    .foregroundStyle(.secondary)
+                Button("Override") {
+                    override = inherited
+                }
+                .controlSize(.small)
             }
         }
     }
@@ -164,10 +170,10 @@ struct BrowserPicker: View {
                 }
             }
             .labelsHidden()
-            .frame(width: 200)
+            .frame(width: 180)
 
             TextField("Custom", text: $selection)
-                .frame(width: 120)
+                .frame(width: 100)
         }
         .onAppear {
             browsers = getInstalledBrowsers()

@@ -90,9 +90,11 @@ public class ConfigManager {
     public func reload() {
         lastError = nil
 
-        // Read raw TOML
-        rawConfigTOML = (try? String(contentsOf: Self.configPath, encoding: .utf8)) ?? ""
-        rawLocalConfigTOML = (try? String(contentsOf: Self.localConfigPath, encoding: .utf8)) ?? ""
+        // Read raw TOML (sanitize smart quotes that macOS text input may have injected)
+        rawConfigTOML = Self.sanitizeTOML(
+            (try? String(contentsOf: Self.configPath, encoding: .utf8)) ?? "")
+        rawLocalConfigTOML = Self.sanitizeTOML(
+            (try? String(contentsOf: Self.localConfigPath, encoding: .utf8)) ?? "")
         hasLocalConfig = FileManager.default.fileExists(atPath: Self.localConfigPath.path)
 
         // Parse main config

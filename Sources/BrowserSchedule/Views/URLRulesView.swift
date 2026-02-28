@@ -8,10 +8,8 @@ struct URLRulesView: View {
     @State private var newWorkURL = ""
 
     var body: some View {
-        @Bindable var cm = configManager
-
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
                 Picker("Editing", selection: $scope) {
                     Text("config.toml").tag(EditingScope.main)
                     Text("config.local.toml").tag(EditingScope.local)
@@ -28,7 +26,7 @@ struct URLRulesView: View {
                 }
 
                 HStack(alignment: .top, spacing: 16) {
-                    URLListBox(
+                    urlListBox(
                         title: "Personal URLs",
                         icon: "house",
                         browserName: configManager.personalBrowser,
@@ -36,7 +34,7 @@ struct URLRulesView: View {
                         newURL: $newPersonalURL
                     )
 
-                    URLListBox(
+                    urlListBox(
                         title: "Work URLs",
                         icon: "briefcase",
                         browserName: configManager.workBrowser,
@@ -44,20 +42,92 @@ struct URLRulesView: View {
                         newURL: $newWorkURL
                     )
                 }
-            }
 
-            HStack {
-                Spacer()
-                Button("Save") {
-                    if scope == .main {
-                        configManager.saveConfig()
-                    } else {
-                        configManager.saveLocalConfig()
+                HStack {
+                    if let error = configManager.lastError {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                            .font(.callout)
+                    }
+                    Spacer()
+                    Button("Save") {
+                        if scope == .main {
+                            configManager.saveConfig()
+                        } else {
+                            configManager.saveLocalConfig()
+                        }
                     }
                 }
             }
+            .padding(16)
         }
-        .formStyle(.grouped)
+    }
+
+    @ViewBuilder
+    private func urlListBox(
+        title: String,
+        icon: String,
+        browserName: String,
+        urls: Binding<[String]>,
+        newURL: Binding<String>
+    ) -> some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("URLs containing these patterns always open in **\(browserName)**")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                VStack(spacing: 2) {
+                    ForEach(Array(urls.wrappedValue.enumerated()), id: \.offset) { index, pattern in
+                        HStack {
+                            Text(pattern)
+                                .font(.body.monospaced())
+                            Spacer()
+                            Button {
+                                urls.wrappedValue.remove(at: index)
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .foregroundStyle(.red)
+                            }
+                            .buttonStyle(.borderless)
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            index % 2 == 0
+                                ? Color.clear
+                                : Color.primary.opacity(0.03)
+                        )
+                    }
+                }
+                .frame(minHeight: 80)
+                .background(Color.primary.opacity(0.03))
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+
+                HStack {
+                    TextField("URL pattern", text: newURL)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { addURL(urls: urls, newURL: newURL) }
+                    Button {
+                        addURL(urls: urls, newURL: newURL)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(newURL.wrappedValue.isEmpty)
+                }
+            }
+            .padding(8)
+        } label: {
+            Label(title, systemImage: icon)
+        }
+    }
+
+    private func addURL(urls: Binding<[String]>, newURL: Binding<String>) {
+        let trimmed = newURL.wrappedValue.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        urls.wrappedValue.append(trimmed)
+        newURL.wrappedValue = ""
     }
 
     private var personalUrlsBinding: Binding<[String]> {
@@ -82,64 +152,5 @@ struct URLRulesView: View {
                 set: { configManager.localWorkUrls = $0.isEmpty ? nil : $0 }
             )
         }
-    }
-}
-
-// MARK: - URL List Box
-
-private struct URLListBox: View {
-    let title: String
-    let icon: String
-    let browserName: String
-    @Binding var urls: [String]
-    @Binding var newURL: String
-
-    var body: some View {
-        GroupBox {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("URLs containing these patterns always open in **\(browserName)**")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-
-                List {
-                    ForEach(Array(urls.enumerated()), id: \.offset) { index, pattern in
-                        HStack {
-                            Text(pattern)
-                                .font(.body.monospaced())
-                            Spacer()
-                            Button {
-                                urls.remove(at: index)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .foregroundStyle(.red)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-                .frame(minHeight: 120)
-
-                HStack {
-                    TextField("URL pattern", text: $newURL)
-                        .onSubmit { addURL() }
-                    Button {
-                        addURL()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                    }
-                    .disabled(newURL.isEmpty)
-                }
-            }
-            .padding(8)
-        } label: {
-            Label(title, systemImage: icon)
-        }
-    }
-
-    private func addURL() {
-        let trimmed = newURL.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        urls.append(trimmed)
-        newURL = ""
     }
 }
