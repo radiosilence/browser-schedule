@@ -38,6 +38,7 @@ public class ConfigManager {
     public var validation: ConfigValidation
     public var isDefaultBrowserStatus: Bool
     public var lastError: String?
+    public var isReloading = false
 
     // MARK: - Paths
 
@@ -88,6 +89,8 @@ public class ConfigManager {
     // MARK: - Load
 
     public func reload() {
+        isReloading = true
+        defer { isReloading = false }
         lastError = nil
 
         // Read raw TOML (sanitize smart quotes that macOS text input may have injected)
