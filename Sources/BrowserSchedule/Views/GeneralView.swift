@@ -35,11 +35,19 @@ struct GeneralView: View {
                             Button("Set as Default Browser") {
                                 do {
                                     try registerAppBundle()
-                                    try setAsDefaultBrowser()
-                                    configManager.refreshDefaultBrowserStatus()
                                 } catch {
                                     errorMessage = error.localizedDescription
                                     showError = true
+                                    return
+                                }
+                                setAsDefaultBrowser()
+                                // Poll for the user confirming the OS prompt
+                                for delay in [1.0, 3.0, 6.0, 10.0] {
+                                    DispatchQueue.main.asyncAfter(
+                                        deadline: .now() + delay
+                                    ) {
+                                        configManager.refreshDefaultBrowserStatus()
+                                    }
                                 }
                             }
                             .disabled(configManager.isDefaultBrowserStatus)
