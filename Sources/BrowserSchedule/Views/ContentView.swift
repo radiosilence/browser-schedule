@@ -1,24 +1,30 @@
-import SwiftUI
 import BrowserScheduleCore
+import SwiftUI
+
+enum EditingScope: String, CaseIterable {
+    case main = "config.toml"
+    case local = "config.local.toml"
+}
 
 struct ContentView: View {
     @Environment(ConfigManager.self) private var configManager
+    @State private var scope: EditingScope = .main
 
     var body: some View {
         TabView {
-            GeneralView()
+            GeneralView(scope: $scope)
                 .tabItem { Label("General", systemImage: "gear") }
 
-            ScheduleView()
+            ScheduleView(scope: $scope)
                 .tabItem { Label("Schedule", systemImage: "clock") }
 
-            URLRulesView()
+            URLRulesView(scope: $scope)
                 .tabItem { Label("URL Rules", systemImage: "link") }
 
             ConfigEditorView()
                 .tabItem { Label("Config Files", systemImage: "doc.text") }
         }
-        .frame(minWidth: 600, minHeight: 450)
-        .padding()
+        .frame(minWidth: 640, minHeight: 480)
+        .padding(8)
     }
 }

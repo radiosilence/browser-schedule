@@ -1,5 +1,5 @@
-import SwiftUI
 import BrowserScheduleCore
+import SwiftUI
 
 struct ConfigEditorView: View {
     @Environment(ConfigManager.self) private var configManager
@@ -9,30 +9,45 @@ struct ConfigEditorView: View {
 
         VStack(spacing: 12) {
             HSplitView {
+                // Main config pane
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Label("config.toml", systemImage: "doc.text")
                             .font(.headline)
+                        Text("(committed)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         Spacer()
                         Button("Save") {
                             configManager.saveRawConfig()
                         }
                     }
 
-                    TextEditor(text: $cm.rawConfigTOML)
-                        .font(.body.monospaced())
-                        .scrollContentBackground(.visible)
+                    TOMLEditorView(text: $cm.rawConfigTOML)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(.separator, lineWidth: 1)
+                        )
                 }
-                .padding(8)
+                .padding(10)
                 .frame(minWidth: 280)
 
+                // Local config pane
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Label("config.local.toml", systemImage: "doc.text.fill")
                             .font(.headline)
+                        Text("(private)")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                         Spacer()
 
                         if configManager.hasLocalConfig {
+                            Button("Delete") {
+                                configManager.deleteLocalConfig()
+                            }
+                            .foregroundStyle(.red)
                             Button("Save") {
                                 configManager.saveRawLocalConfig()
                             }
@@ -40,28 +55,38 @@ struct ConfigEditorView: View {
                     }
 
                     if configManager.hasLocalConfig {
-                        TextEditor(text: $cm.rawLocalConfigTOML)
-                            .font(.body.monospaced())
-                            .scrollContentBackground(.visible)
+                        TOMLEditorView(text: $cm.rawLocalConfigTOML)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .strokeBorder(.orange.opacity(0.3), lineWidth: 1)
+                            )
                     } else {
-                        VStack {
+                        VStack(spacing: 8) {
                             Spacer()
-                            Text("No local config file exists.")
+                            Text("No local config file.")
                                 .foregroundStyle(.secondary)
-                            Text("Local config is for private overrides that aren't checked into git.")
-                                .font(.callout)
-                                .foregroundStyle(.tertiary)
-                                .padding(.bottom, 4)
+                            Text(
+                                "Local config is for private overrides that aren't committed to git."
+                            )
+                            .font(.callout)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
                             Button("Create Local Config") {
-                                configManager.rawLocalConfigTOML = "# Local overrides\n# Values here merge with config.toml\n"
+                                configManager.rawLocalConfigTOML =
+                                    "# Local overrides\n# Values here merge with config.toml\n"
                                 configManager.saveRawLocalConfig()
                             }
                             Spacer()
                         }
                         .frame(maxWidth: .infinity)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .strokeBorder(.separator.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [5]))
+                        )
                     }
                 }
-                .padding(8)
+                .padding(10)
                 .frame(minWidth: 280)
             }
 
@@ -70,12 +95,14 @@ struct ConfigEditorView: View {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
                         .foregroundStyle(.red)
                         .font(.callout)
+                        .lineLimit(2)
                 }
                 Spacer()
                 Button("Reload from Disk") {
                     configManager.reload()
                 }
             }
+            .padding(.horizontal, 10)
         }
         .padding(.top, 8)
     }

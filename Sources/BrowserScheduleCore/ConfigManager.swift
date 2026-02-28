@@ -162,6 +162,7 @@ public class ConfigManager {
     public func saveRawConfig() {
         do {
             try ensureConfigDir()
+            rawConfigTOML = Self.sanitizeTOML(rawConfigTOML)
             try rawConfigTOML.write(to: Self.configPath, atomically: true, encoding: .utf8)
             lastError = nil
             reload()
@@ -173,12 +174,23 @@ public class ConfigManager {
     public func saveRawLocalConfig() {
         do {
             try ensureConfigDir()
+            rawLocalConfigTOML = Self.sanitizeTOML(rawLocalConfigTOML)
             try rawLocalConfigTOML.write(to: Self.localConfigPath, atomically: true, encoding: .utf8)
             lastError = nil
             reload()
         } catch {
             lastError = "Failed to save config.local.toml: \(error.localizedDescription)"
         }
+    }
+
+    /// Replace smart quotes/dashes that macOS text input may inject
+    private static func sanitizeTOML(_ text: String) -> String {
+        text.replacingOccurrences(of: "\u{201C}", with: "\"")
+            .replacingOccurrences(of: "\u{201D}", with: "\"")
+            .replacingOccurrences(of: "\u{2018}", with: "'")
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+            .replacingOccurrences(of: "\u{2013}", with: "-")
+            .replacingOccurrences(of: "\u{2014}", with: "-")
     }
 
     public func deleteLocalConfig() {
