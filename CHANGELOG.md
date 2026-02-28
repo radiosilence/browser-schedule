@@ -1,5 +1,17 @@
 # Changelog
 
+## v1.2.4
+
+### Changed
+
+- **Single-pane config editor** — Config Files tab now shows one editor at a time, switching based on the centralized scope picker. Removes the redundant HSplitView since scope selection already lives above the tab bar.
+
+## v1.2.3
+
+### Changed
+
+- **Week schedule grid** — replaced the single-day timeline bar with a 7-column weekly grid showing work hours per day, with dimmed non-work days and a red current-time marker on today's column
+
 ## v1.2.2
 
 ### Fixed
@@ -51,7 +63,7 @@
   - **General tab**: browser pickers (auto-discovers installed browsers), default browser status/registration
   - **Schedule tab**: work hours and days editor with night shift detection, live status indicator
   - **URL Rules tab**: add/remove URL patterns with auto-save, split into personal/work columns
-  - **Config Files tab**: raw TOML editor with syntax highlighting, side-by-side main/local config panes
+  - **Config Files tab**: raw TOML editor with syntax highlighting, scope-aware single editor
 - **Local config override support** in UI — toggle between editing `config.toml` and `config.local.toml` with override/inherit controls
 - **`ConfigManager`** (`@Observable`) — centralized config state for SwiftUI binding, handles load/save/merge/validation
 - **`BrowserEnumeration`** — discovers installed browsers via `NSWorkspace.urlsForApplications`

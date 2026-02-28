@@ -31,7 +31,7 @@ struct ContentView: View {
         URLRulesView(scope: $scope)
           .tabItem { Label("URL Rules", systemImage: "link") }
 
-        ConfigEditorView()
+        ConfigEditorView(scope: $scope)
           .tabItem { Label("Config Files", systemImage: "doc.text") }
       }
     }
