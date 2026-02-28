@@ -10,115 +10,133 @@ struct GeneralView: View {
   var body: some View {
     @Bindable var cm = configManager
 
-    Form {
-      // Default Browser status
-      Section {
-        LabeledContent("Status") {
-          HStack(spacing: 8) {
-            Image(
-              systemName: configManager.isDefaultBrowserStatus
-                ? "checkmark.circle.fill" : "xmark.circle.fill"
-            )
-            .foregroundStyle(
-              configManager.isDefaultBrowserStatus ? .green : .red
-            )
+    ScrollView {
+      VStack(spacing: 16) {
+        // Default Browser status
+        GroupBox {
+          LabeledContent("Status") {
+            HStack(spacing: 8) {
+              Image(
+                systemName: configManager.isDefaultBrowserStatus
+                  ? "checkmark.circle.fill" : "xmark.circle.fill"
+              )
+              .foregroundStyle(
+                configManager.isDefaultBrowserStatus ? .green : .red
+              )
 
-            Text(
-              configManager.isDefaultBrowserStatus
-                ? "BrowserSchedule is the default browser"
-                : "Not the default browser")
+              Text(
+                configManager.isDefaultBrowserStatus
+                  ? "BrowserSchedule is the default browser"
+                  : "Not the default browser")
 
-            if !configManager.isDefaultBrowserStatus {
-              Button("Set as Default") {
-                do {
-                  try registerAppBundle()
-                } catch {
-                  errorMessage = error.localizedDescription
-                  showError = true
-                  return
-                }
-                setAsDefaultBrowser()
-                for delay in [1.0, 3.0, 6.0, 10.0] {
-                  DispatchQueue.main.asyncAfter(
-                    deadline: .now() + delay
-                  ) {
-                    configManager.refreshDefaultBrowserStatus()
+              if !configManager.isDefaultBrowserStatus {
+                Button("Set as Default") {
+                  do {
+                    try registerAppBundle()
+                  } catch {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                    return
+                  }
+                  setAsDefaultBrowser()
+                  for delay in [1.0, 3.0, 6.0, 10.0] {
+                    DispatchQueue.main.asyncAfter(
+                      deadline: .now() + delay
+                    ) {
+                      configManager.refreshDefaultBrowserStatus()
+                    }
                   }
                 }
               }
             }
           }
+          .padding(.vertical, 4)
+        } label: {
+          Label("Default Browser", systemImage: "globe")
         }
-      } header: {
-        Label("Default Browser", systemImage: "globe")
-      }
 
-      // Current routing status
-      Section {
-        LabeledContent("Active Browser") {
-          HStack(spacing: 8) {
-            Image(
-              systemName: isCurrentlyWorkTime
-                ? "briefcase.fill" : "house.fill"
-            )
-            .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
+        // Current routing status
+        GroupBox {
+          VStack(spacing: 0) {
+            LabeledContent("Active Browser") {
+              HStack(spacing: 8) {
+                Image(
+                  systemName: isCurrentlyWorkTime
+                    ? "briefcase.fill" : "house.fill"
+                )
+                .foregroundStyle(isCurrentlyWorkTime ? .blue : .green)
 
-            Text(
-              isCurrentlyWorkTime
-                ? "\(configManager.mergedConfig.browsers.work) (work hours)"
-                : "\(configManager.mergedConfig.browsers.personal) (personal hours)"
-            )
+                Text(
+                  isCurrentlyWorkTime
+                    ? "\(configManager.mergedConfig.browsers.work) (work hours)"
+                    : "\(configManager.mergedConfig.browsers.personal) (personal hours)"
+                )
+              }
+            }
+            .padding(.vertical, 4)
+
+            if !configManager.validation.isValid {
+              ForEach(configManager.validation.errors, id: \.self) { error in
+                Divider()
+                Label(error, systemImage: "exclamationmark.triangle.fill")
+                  .foregroundStyle(.red)
+                  .font(.callout)
+                  .padding(.vertical, 4)
+              }
+            }
           }
+        } label: {
+          Label("Routing", systemImage: "arrow.triangle.branch")
         }
 
-        if !configManager.validation.isValid {
-          ForEach(configManager.validation.errors, id: \.self) { error in
+        // Browsers
+        GroupBox {
+          VStack(spacing: 0) {
+            if scope == .main {
+              LabeledContent("Work Browser") {
+                BrowserPicker(selection: $cm.workBrowser)
+              }
+              .padding(.vertical, 4)
+              Divider()
+              LabeledContent("Personal Browser") {
+                BrowserPicker(selection: $cm.personalBrowser)
+              }
+              .padding(.vertical, 4)
+            } else {
+              OverridableField(
+                label: "Work Browser",
+                inherited: configManager.workBrowser,
+                override: $cm.localWorkBrowser
+              ) { binding in
+                BrowserPicker(selection: binding)
+              }
+              .padding(.vertical, 4)
+              Divider()
+              OverridableField(
+                label: "Personal Browser",
+                inherited: configManager.personalBrowser,
+                override: $cm.localPersonalBrowser
+              ) { binding in
+                BrowserPicker(selection: binding)
+              }
+              .padding(.vertical, 4)
+            }
+          }
+        } label: {
+          Label("Browsers", systemImage: "app.dashed")
+        }
+
+        if let error = configManager.lastError {
+          GroupBox {
             Label(error, systemImage: "exclamationmark.triangle.fill")
               .foregroundStyle(.red)
-              .font(.callout)
+              .padding(.vertical, 4)
           }
         }
-      } header: {
-        Label("Routing", systemImage: "arrow.triangle.branch")
       }
-
-      // Browsers
-      Section {
-        if scope == .main {
-          LabeledContent("Work Browser") {
-            BrowserPicker(selection: $cm.workBrowser)
-          }
-          LabeledContent("Personal Browser") {
-            BrowserPicker(selection: $cm.personalBrowser)
-          }
-        } else {
-          OverridableField(
-            label: "Work Browser",
-            inherited: configManager.workBrowser,
-            override: $cm.localWorkBrowser
-          ) { binding in
-            BrowserPicker(selection: binding)
-          }
-          OverridableField(
-            label: "Personal Browser",
-            inherited: configManager.personalBrowser,
-            override: $cm.localPersonalBrowser
-          ) { binding in
-            BrowserPicker(selection: binding)
-          }
-        }
-      } header: {
-        Label("Browsers", systemImage: "app.dashed")
-      }
-
-      if let error = configManager.lastError {
-        Section {
-          Label(error, systemImage: "exclamationmark.triangle.fill")
-            .foregroundStyle(.red)
-        }
-      }
+      .padding(.horizontal, 20)
+      .padding(.vertical, 12)
     }
-    .formStyle(.grouped)
     .onChange(of: configManager.workBrowser) { autoSave() }
     .onChange(of: configManager.personalBrowser) { autoSave() }
     .onChange(of: configManager.localWorkBrowser) { autoSave() }
