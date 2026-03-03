@@ -5,12 +5,17 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Setup Swift
         uses: swift-actions/setup-swift@v2
@@ -46,5 +51,26 @@ jobs:
 
             ### Changes
             See commit history for detailed changes.
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Update Cask
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          DMG_PATH=".build/pkg/BrowserSchedule.dmg"
+          SHA256=$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/browser-schedule.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/browser-schedule.rb
+
+      - name: Commit Cask Update
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git add Casks/browser-schedule.rb
+          git commit -m "chore: update cask to v${VERSION} [skip ci]"
+          git push
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

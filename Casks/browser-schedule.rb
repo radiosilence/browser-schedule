@@ -1,8 +1,8 @@
 cask "browser-schedule" do
-  version :latest
-  sha256 :no_check
+  version "1.3.0"
+  sha256 "320ec865fe684794205a8ffb3b5365d6fc9a6d44fba64c57db9911c4dd78260f"
 
-  url "https://github.com/radiosilence/browser-schedule/releases/latest/download/BrowserSchedule.dmg"
+  url "https://github.com/radiosilence/browser-schedule/releases/download/v#{version}/BrowserSchedule.dmg"
   name "BrowserSchedule"
   desc "Automatic browser switching based on time, day, and URL patterns"
   homepage "https://github.com/radiosilence/browser-schedule"
