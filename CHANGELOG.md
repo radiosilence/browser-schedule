@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.3.1
+
+### Changed
+
+- **Cask uses pinned version with SHA256** — replaced `:latest`/`:no_check` with explicit version and hash for integrity verification.
+- **Release CI auto-updates cask** — workflow now computes DMG hash post-build and commits updated cask back to `main`.
+
 ## v1.3.0
 
 ### Changed
