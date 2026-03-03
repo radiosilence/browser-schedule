@@ -47,7 +47,7 @@ jobs:
       - name: Read Version
         id: version
         run: |
-          VERSION=$(grep 'version "' Casks/browser-schedule.rb | head -1 | sed 's/.*version "\(.*\)"/\1/')
+          VERSION=$(cat VERSION | tr -d '[:space:]')
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Get Latest Release
@@ -103,10 +103,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Update Cask SHA
+      - name: Update Cask
         if: steps.check.outputs.should_release == 'true'
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
           SHA256=$(shasum -a 256 .build/pkg/BrowserSchedule.dmg | awk '{print $1}')
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/browser-schedule.rb
           sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/browser-schedule.rb
 
       - name: Commit Cask Update
