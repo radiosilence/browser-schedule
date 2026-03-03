@@ -103,23 +103,50 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: Update Cask
+      - name: Update Homebrew Tap
         if: steps.check.outputs.should_release == 'true'
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           SHA256=$(shasum -a 256 .build/pkg/BrowserSchedule.dmg | awk '{print $1}')
-          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/browser-schedule.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/browser-schedule.rb
 
-      - name: Commit Cask Update
-        if: steps.check.outputs.should_release == 'true'
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/radiosilence/homebrew-browser-schedule.git /tmp/homebrew-tap
+          cd /tmp/homebrew-tap
+
+          mkdir -p Casks
+          cat > Casks/browser-schedule.rb << 'CASK'
+cask "browser-schedule" do
+  version "${VERSION}"
+  sha256 "${SHA256}"
+
+  url "https://github.com/radiosilence/browser-schedule/releases/download/v#{version}/BrowserSchedule.dmg"
+  name "BrowserSchedule"
+  desc "Automatic browser switching based on time, day, and URL patterns"
+  homepage "https://github.com/radiosilence/browser-schedule"
+
+  depends_on macos: ">= :sonoma"
+
+  app "BrowserSchedule.app"
+
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-cr", "#{appdir}/BrowserSchedule.app"]
+  end
+
+  zap trash: [
+    "~/.config/browser-schedule",
+  ]
+end
+CASK
+
+          # Replace shell variables (heredoc with quotes doesn't expand)
+          sed -i '' "s/\${VERSION}/${VERSION}/g" Casks/browser-schedule.rb
+          sed -i '' "s/\${SHA256}/${SHA256}/g" Casks/browser-schedule.rb
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/browser-schedule.rb
+          git add -A
           git diff --cached --quiet && exit 0
-          git commit -m "chore: update cask to v${VERSION} [skip ci]"
+          git commit -m "Update browser-schedule to v${VERSION}"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}

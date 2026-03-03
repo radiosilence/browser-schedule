@@ -1,6 +1,6 @@
 # Browser Schedule
 
-[![CI](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml/badge.svg)](https://github.com/radiosilence/browser-schedule/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/radiosilence/browser-schedule/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/radiosilence/browser-schedule/actions/workflows/ci-cd.yml)
 
 Automatically switches default browser based on time, day, and URL patterns. Built for macOS 14+ with Swift and SwiftUI.
 
@@ -13,7 +13,7 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 ### Homebrew (Recommended)
 
 ```sh
-brew install --cask radiosilence/browser-schedule/browser-schedule
+brew install radiosilence/browser-schedule/browser-schedule
 ```
 
 Handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
@@ -89,7 +89,7 @@ Create `~/.config/browser-schedule/config.local.toml` for private overrides that
 - [x] **Timeline visualization**: 24-hour bar showing work/personal segments with current time marker
 - [x] **Monokai Pro editor**: TOML config editor with Filter Machine syntax theme
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
-- [x] **Homebrew Cask**: `brew install --cask radiosilence/browser-schedule/browser-schedule`
+- [x] **Homebrew Cask**: `brew install radiosilence/browser-schedule/browser-schedule`
 - [x] **App Icon**: Clock with work/personal arcs and globe badge, generated via Core Graphics
 
 ## Development

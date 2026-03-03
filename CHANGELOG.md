@@ -1,11 +1,19 @@
 # Changelog
 
+## v1.3.2
+
+### Changed
+
+- See v1.3.1 — this release tests the new CI/CD pipeline end-to-end.
+
 ## v1.3.1
 
 ### Changed
 
+- **Unified CI/CD pipeline** — single `ci-cd.yml` replaces separate `ci.yml` + `release.yml`. Every push runs tests + build; releases trigger automatically when `VERSION` file is bumped.
+- **VERSION file** — single source of truth for release versioning, replaces tag-driven releases.
+- **Homebrew tap repo** — cask lives in `radiosilence/homebrew-browser-schedule`, auto-updated by CI with correct version + SHA on each release.
 - **Cask uses pinned version with SHA256** — replaced `:latest`/`:no_check` with explicit version and hash for integrity verification.
-- **Release CI auto-updates cask** — workflow now computes DMG hash post-build and commits updated cask back to `main`.
 
 ## v1.3.0
 
