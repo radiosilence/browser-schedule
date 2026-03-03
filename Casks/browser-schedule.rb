@@ -1,6 +1,6 @@
 cask "browser-schedule" do
   version "1.3.1"
-  sha256 "320ec865fe684794205a8ffb3b5365d6fc9a6d44fba64c57db9911c4dd78260f"
+  sha256 "3398719033275780e046c617ea743a0780990b89fcc1e228ce7b40445a5322a5"
 
   url "https://github.com/radiosilence/browser-schedule/releases/download/v#{version}/BrowserSchedule.dmg"
   name "BrowserSchedule"
