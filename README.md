@@ -13,10 +13,17 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 ### Homebrew (Recommended)
 
 ```sh
-brew install radiosilence/browser-schedule/browser-schedule
+brew install --cask radiosilence/browser-schedule/browser-schedule
 ```
 
-Handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
+This installs via a [Homebrew Cask](https://github.com/radiosilence/homebrew-browser-schedule) which handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
+
+#### Brewfile
+
+```ruby
+tap "radiosilence/browser-schedule"
+cask "browser-schedule"
+```
 
 ### Direct Download
 
@@ -89,7 +96,7 @@ Create `~/.config/browser-schedule/config.local.toml` for private overrides that
 - [x] **Timeline visualization**: 24-hour bar showing work/personal segments with current time marker
 - [x] **Monokai Pro editor**: TOML config editor with Filter Machine syntax theme
 - [x] **Release Pipeline**: Automated DMG builds on GitHub releases
-- [x] **Homebrew Cask**: `brew install radiosilence/browser-schedule/browser-schedule`
+- [x] **Homebrew Cask**: `brew install --cask radiosilence/browser-schedule/browser-schedule`
 - [x] **App Icon**: Clock with work/personal arcs and globe badge, generated via Core Graphics
 
 ## Development

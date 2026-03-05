@@ -89,7 +89,7 @@ jobs:
 
             ### Install via Homebrew (Recommended)
             ```sh
-            brew install radiosilence/browser-schedule/browser-schedule
+            brew install --cask radiosilence/browser-schedule/browser-schedule
             ```
 
             ### Install Manually
