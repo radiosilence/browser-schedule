@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **The cask uses `postflight_steps`.** Homebrew deprecated the block form of `postflight` and warns about it on every `brew update`.
+- **The generated cask declares `depends_on macos: :sonoma`.** The tap had been corrected by hand; releases were regenerating the deprecated `">= :sonoma"` string form.
+
 ## v1.3.2
 
 ### Changed

@@ -124,18 +124,18 @@ jobs:
           printf '  desc "Automatic browser switching based on time, day, and URL patterns"\n' >> Casks/browser-schedule.rb
           printf '  homepage "https://github.com/radiosilence/browser-schedule"\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
-          printf '  depends_on macos: ">= :sonoma"\n' >> Casks/browser-schedule.rb
+          printf '  depends_on macos: :sonoma\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
           printf '  app "BrowserSchedule.app"\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
-          printf '  postflight do\n' >> Casks/browser-schedule.rb
-          printf '    system_command "/usr/bin/xattr",\n' >> Casks/browser-schedule.rb
-          printf '                   args: ["-cr", "#{appdir}/BrowserSchedule.app"]\n' >> Casks/browser-schedule.rb
+          printf '  postflight_steps do\n' >> Casks/browser-schedule.rb
+          printf '    run "/usr/bin/xattr",\n' >> Casks/browser-schedule.rb
+          printf '        args:           ["-cr", "{{appdir}}/BrowserSchedule.app"],\n' >> Casks/browser-schedule.rb
+          printf '        writable_paths: ["BrowserSchedule.app"],\n' >> Casks/browser-schedule.rb
+          printf '        writable_base:  :appdir\n' >> Casks/browser-schedule.rb
           printf '  end\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
-          printf '  zap trash: [\n' >> Casks/browser-schedule.rb
-          printf '    "~/.config/browser-schedule",\n' >> Casks/browser-schedule.rb
-          printf '  ]\n' >> Casks/browser-schedule.rb
+          printf '  zap trash: "~/.config/browser-schedule"\n' >> Casks/browser-schedule.rb
           printf 'end\n' >> Casks/browser-schedule.rb
 
           git config user.name "github-actions[bot]"
