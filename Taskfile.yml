@@ -195,6 +195,23 @@ tasks:
       - rm -f ./.build/pkg/BrowserSchedule.dmg
       - hdiutil create -volname "BrowserSchedule" -srcfolder ./.build/pkg/BrowserSchedule.app -ov -format UDZO ./.build/pkg/BrowserSchedule.dmg
 
+  notarize:
+    desc: Sign, notarise and staple the DMG (needs SIGN_IDENTITY and an App Store Connect API key)
+    silent: true
+    requires:
+      vars: [SIGN_IDENTITY, APPLE_API_KEY_PATH, APPLE_API_KEY_ID, APPLE_API_ISSUER_ID]
+    cmds:
+      - |
+        set -euo pipefail
+        dmg=./.build/pkg/BrowserSchedule.dmg
+        codesign --force --timestamp --sign "$SIGN_IDENTITY" "$dmg"
+        xcrun notarytool submit "$dmg" \
+          --key "$APPLE_API_KEY_PATH" --key-id "$APPLE_API_KEY_ID" --issuer "$APPLE_API_ISSUER_ID" \
+          --wait --timeout 30m
+        xcrun stapler staple "$dmg"
+        xcrun stapler validate "$dmg"
+        spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
+
   create-app-bundle:
     desc: Create app bundle in build directory
     internal: true
@@ -245,7 +262,18 @@ tasks:
       - cp .build/release/BrowserScheduleCLI ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule
       - chmod +x ./.build/pkg/BrowserSchedule.app/Contents/MacOS/browser-schedule-cli
-      - codesign -s - --deep --force ./.build/pkg/BrowserSchedule.app
+      # SIGN_IDENTITY set to a Developer ID signs for notarisation: hardened
+      # runtime, secure timestamp, and the CLI signed before the bundle that
+      # contains it. Unset, the bundle is ad-hoc signed for local use.
+      - |
+        app=./.build/pkg/BrowserSchedule.app
+        if [ -n "${SIGN_IDENTITY:-}" ]; then
+          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$app/Contents/MacOS/browser-schedule-cli"
+          codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$app"
+        else
+          codesign --force --deep --sign - "$app"
+        fi
+        codesign --verify --strict --deep --verbose=2 "$app"
 
   release:
     desc: "Create and push a semantic version release (usage: task release -- major|minor|patch)"
