@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- **The DMG opens to a styled install window.** It has a background matching the app icon, an Applications shortcut to drag the app onto, and the app icon as the volume icon. It is built with dmgbuild instead of `hdiutil create`, which could only produce a bare folder containing the app.
+
 ## v1.3.3
 
 ### Changed
