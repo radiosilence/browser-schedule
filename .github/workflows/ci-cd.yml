@@ -14,11 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Setup Swift
-        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2
-        with:
-          swift-version: "6.1"
-
       - name: Install Task
         run: brew install go-task/tap/go-task
 
@@ -68,12 +63,6 @@ jobs:
           else
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Setup Swift
-        if: steps.check.outputs.should_release == 'true'
-        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2
-        with:
-          swift-version: "6.1"
 
       - name: Install Task
         if: steps.check.outputs.should_release == 'true'

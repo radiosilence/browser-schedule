@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- **CI builds with the runner's Xcode toolchain.** The pinned Swift 6.1 toolchain cannot build against the SDK in current Xcode, which failed every build.
 - **The cask uses `postflight_steps`.** Homebrew deprecated the block form of `postflight` and warns about it on every `brew update`.
 - **The generated cask declares `depends_on macos: :sonoma`.** The tap had been corrected by hand; releases were regenerating the deprecated `">= :sonoma"` string form.
 
