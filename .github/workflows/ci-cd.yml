@@ -69,12 +69,57 @@ jobs:
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Download DMG
+      - name: Setup Swift
         if: steps.check.outputs.should_release == 'true'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: swift-actions/setup-swift@7ca6abe6b3b0e8b5421b88be48feee39cbf52c6a # v2
         with:
-          name: BrowserSchedule.dmg
-          path: .build/pkg
+          swift-version: "6.1"
+
+      - name: Install Task
+        if: steps.check.outputs.should_release == 'true'
+        run: brew install go-task/tap/go-task
+
+      # The Developer ID certificate goes into a keychain made for this job
+      # alone, with a random password, and codesign may use its key without a
+      # prompt. The identity name is read back from the certificate so it can
+      # be renewed without editing the workflow.
+      - name: Import Developer ID certificate
+        if: steps.check.outputs.should_release == 'true'
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 24)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          printf '%s' "$MACOS_CERTIFICATE_P12" | base64 --decode > "$RUNNER_TEMP/certificate.p12"
+          security import "$RUNNER_TEMP/certificate.p12" -k "$keychain" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/certificate.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          identity=$(security find-identity -v -p codesigning "$keychain" \
+            | awk -F'"' '/Developer ID Application/ { print $2; exit }')
+          test -n "$identity" || { echo "::error::no Developer ID Application identity in MACOS_CERTIFICATE_P12"; exit 1; }
+          echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
+
+      - name: Build signed DMG
+        if: steps.check.outputs.should_release == 'true'
+        run: task build-dmg
+
+      - name: Notarise
+        if: steps.check.outputs.should_release == 'true'
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+          printf '%s' "$APPLE_API_KEY_P8" | base64 --decode > "$APPLE_API_KEY_PATH"
+          trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
+          task notarize
 
       - name: Create Release
         if: steps.check.outputs.should_release == 'true'
@@ -95,8 +140,7 @@ jobs:
             ### Install Manually
             1. Download `BrowserSchedule.dmg` below
             2. Mount the DMG and drag BrowserSchedule.app to Applications
-            3. Remove quarantine: `xattr -cr /Applications/BrowserSchedule.app`
-            4. **Double-click the app** to open settings and set as default browser
+            3. **Double-click the app** to open settings and set as default browser
 
             ### Changes
             See commit history for detailed changes.
@@ -127,13 +171,6 @@ jobs:
           printf '  depends_on macos: :sonoma\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
           printf '  app "BrowserSchedule.app"\n' >> Casks/browser-schedule.rb
-          printf '\n' >> Casks/browser-schedule.rb
-          printf '  postflight_steps do\n' >> Casks/browser-schedule.rb
-          printf '    run "/usr/bin/xattr",\n' >> Casks/browser-schedule.rb
-          printf '        args:           ["-cr", "{{appdir}}/BrowserSchedule.app"],\n' >> Casks/browser-schedule.rb
-          printf '        writable_paths: ["BrowserSchedule.app"],\n' >> Casks/browser-schedule.rb
-          printf '        writable_base:  :appdir\n' >> Casks/browser-schedule.rb
-          printf '  end\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
           printf '  zap trash: "~/.config/browser-schedule"\n' >> Casks/browser-schedule.rb
           printf 'end\n' >> Casks/browser-schedule.rb

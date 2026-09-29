@@ -16,7 +16,7 @@ Automatically switches default browser based on time, day, and URL patterns. Bui
 brew install --cask radiosilence/browser-schedule/browser-schedule
 ```
 
-This installs via a [Homebrew Cask](https://github.com/radiosilence/homebrew-browser-schedule) which handles quarantine removal automatically. Double-click the app to open settings and set as default browser.
+This installs via a [Homebrew Cask](https://github.com/radiosilence/homebrew-browser-schedule). Double-click the app to open settings and set as default browser.
 
 #### Brewfile
 
@@ -29,8 +29,7 @@ cask "browser-schedule"
 
 1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
 2. Mount the DMG and drag BrowserSchedule.app to Applications
-3. Remove quarantine: `xattr -cr /Applications/BrowserSchedule.app`
-4. **Double-click the app** to open settings and set as default browser
+3. **Double-click the app** to open settings and set as default browser
 
 ### Build from Source
 
@@ -39,6 +38,8 @@ task install
 ```
 
 Builds, ad-hoc signs, creates the app bundle, and installs to `/Applications`.
+
+Release builds are signed with a Developer ID and notarised in CI, so Gatekeeper opens them without a quarantine workaround. `task build-dmg notarize` does this locally given `SIGN_IDENTITY` (a Developer ID Application identity) and an App Store Connect API key (`APPLE_API_KEY_PATH`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`). The release job needs the repository secrets `MACOS_CERTIFICATE_P12` (base64 Developer ID Application `.p12`), `MACOS_CERTIFICATE_PASSWORD`, `APPLE_API_KEY_P8` (base64 `.p8`), `APPLE_API_KEY_ID` and `APPLE_API_ISSUER_ID`.
 
 ## Settings UI
 
