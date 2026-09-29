@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Install Task
-        run: brew install go-task/tap/go-task
+      - name: Install Task and uv
+        run: brew install go-task/tap/go-task uv
 
       - name: Run tests
         run: swift test
@@ -64,9 +64,9 @@ jobs:
             echo "should_release=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install Task
+      - name: Install Task and uv
         if: steps.check.outputs.should_release == 'true'
-        run: brew install go-task/tap/go-task
+        run: brew install go-task/tap/go-task uv
 
       # The Developer ID certificate goes into a keychain made for this job
       # alone, with a random password, and codesign may use its key without a
@@ -128,7 +128,7 @@ jobs:
 
             ### Install Manually
             1. Download `BrowserSchedule.dmg` below
-            2. Mount the DMG and drag BrowserSchedule.app to Applications
+            2. Open the DMG and drag BrowserSchedule onto the Applications shortcut in its window
             3. **Double-click the app** to open settings and set as default browser
 
             ### Changes

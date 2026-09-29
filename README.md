@@ -28,7 +28,7 @@ cask "browser-schedule"
 ### Direct Download
 
 1. Download `BrowserSchedule.dmg` from the [latest release](https://github.com/radiosilence/browser-schedule/releases/latest)
-2. Mount the DMG and drag BrowserSchedule.app to Applications
+2. Open the DMG and drag BrowserSchedule onto the Applications shortcut in its window
 3. **Double-click the app** to open settings and set as default browser
 
 ### Build from Source
@@ -122,6 +122,7 @@ task test-all       # Run both unit and integration tests
 
 - `task build` - Build Swift executable
 - `task build-dmg` - Build distributable DMG
+- `task dmg-background` - Regenerate `Resources/dmg-background.tiff` from `Scripts/generate-dmg-background.swift`
 - `task release -- patch|minor|major` - Create and push semantic version release
 - `task install` - Install app bundle and register as default browser
 - `task update` - Update existing app bundle
@@ -134,6 +135,10 @@ task test-all       # Run both unit and integration tests
 - `task logs-realtime` - Stream real-time logs
 - `task logs-all` - Show all logs (last 24 hours)
 - `task clean` - Clean build artifacts
+
+### DMG Layout
+
+`task build-dmg` uses [dmgbuild](https://github.com/dmgbuild/dmgbuild) (run through `uvx`, so it needs [uv](https://docs.astral.sh/uv/)) with `Resources/dmg-settings.py`. dmgbuild writes the Finder window layout into the image's `.DS_Store` directly instead of scripting Finder, so it works on headless CI runners. The background is a 1x/2x TIFF generated in Core Graphics; icon positions in the settings file must match the constants in the generator script. Finder draws icon labels in black on an image background regardless of system appearance, so the labels sit on light plates.
 
 ### Shell Completions
 

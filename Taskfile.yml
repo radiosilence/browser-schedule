@@ -193,7 +193,17 @@ tasks:
       - rm -rf ./.build/pkg/BrowserSchedule.app
       - task: create-app-bundle
       - rm -f ./.build/pkg/BrowserSchedule.dmg
-      - hdiutil create -volname "BrowserSchedule" -srcfolder ./.build/pkg/BrowserSchedule.app -ov -format UDZO ./.build/pkg/BrowserSchedule.dmg
+      - uvx dmgbuild==1.6.7 -s Resources/dmg-settings.py "BrowserSchedule" ./.build/pkg/BrowserSchedule.dmg
+
+  dmg-background:
+    desc: Regenerate the DMG window background from Scripts/generate-dmg-background.swift
+    silent: true
+    cmds:
+      - |
+        tmp=$(mktemp -d)
+        swift Scripts/generate-dmg-background.swift "$tmp"
+        tiffutil -cathidpicheck "$tmp/dmg-background.png" "$tmp/dmg-background@2x.png" -out Resources/dmg-background.tiff
+        rm -rf "$tmp"
 
   notarize:
     desc: Sign, notarise and staple the DMG (needs SIGN_IDENTITY and an App Store Connect API key)
