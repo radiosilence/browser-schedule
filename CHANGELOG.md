@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## v1.3.3
+
 ### Changed
 
 - **Releases are signed with a Developer ID and notarised.** Gatekeeper previously blocked the ad-hoc signed app, so the cask stripped the quarantine attribute and manual installs had to run `xattr -cr`. Neither is needed now, and the cask no longer has a postflight step.
