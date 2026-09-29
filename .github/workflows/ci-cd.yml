@@ -10,9 +10,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install Task
         run: brew install go-task/tap/go-task
@@ -24,7 +24,7 @@ jobs:
         run: task build-dmg
 
       - name: Upload DMG
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: BrowserSchedule.dmg
           path: .build/pkg/BrowserSchedule.dmg
@@ -32,10 +32,10 @@ jobs:
   release:
     needs: build
     if: github.ref == 'refs/heads/main'
-    runs-on: macos-latest
+    runs-on: xcode-27
     steps:
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
 
@@ -112,7 +112,7 @@ jobs:
 
       - name: Create Release
         if: steps.check.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: v${{ steps.version.outputs.version }}
           files: ./.build/pkg/BrowserSchedule.dmg

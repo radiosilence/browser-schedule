@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- **CI builds with the runner's Xcode toolchain.** The pinned Swift 6.1 toolchain cannot build against the SDK in current Xcode, which failed every build.
+- **CI builds with Xcode 27 and Swift 6.4.** The pinned Swift 6.1 toolchain could not build against the SDK in the runner's Xcode, which failed every build. CI now runs on the `xcode-27` runner image with Xcode's own toolchain, and the package requires Swift tools 6.4.
 - **The cask uses `postflight_steps`.** Homebrew deprecated the block form of `postflight` and warns about it on every `brew update`.
 - **The generated cask declares `depends_on macos: :sonoma`.** The tap had been corrected by hand; releases were regenerating the deprecated `">= :sonoma"` string form.
 
