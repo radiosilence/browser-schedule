@@ -103,7 +103,8 @@ Configurable via the Settings UI or direct file editing. The app validates time 
 - Builds with Xcode 27 / Swift 6.4 (`swift-tools-version: 6.4`). CI runs on the `xcode-27` runner label because `macos-latest` still defaults to Xcode 26
 - Uses Swift Package Manager with TOMLKit for TOML parsing
 - DMG built by `uvx dmgbuild` from `Resources/dmg-settings.py`; background from `Scripts/generate-dmg-background.swift` (`task dmg-background`). Icon positions in both files must agree
-- Signing: `create-app-bundle` ad-hoc signs unless `SIGN_IDENTITY` is set, in which case it signs with hardened runtime + timestamp for notarisation (`task notarize`). CI release job imports the Developer ID cert into a throwaway keychain.
+- Signing: `create-app-bundle` ad-hoc signs unless `SIGN_IDENTITY` is set, in which case it signs with hardened runtime + timestamp for notarisation (`task notarize`). CI imports the Developer ID cert into a throwaway keychain on release runs.
+- CI: an ubuntu `changes` job decides whether the single macOS `build` job runs (PRs touching more than docs; main pushes only when VERSION exceeds the latest release). Releases are arm64 only.
 - App bundle at `/Applications/BrowserSchedule.app` with `LSUIElement=true` in Info.plist (background by default, switches to foreground when showing UI)
 - TOMLKit API: use direct assignment to TOMLTable subscripts (`table["key"] = "value"`), `TOMLArray(["a","b"])` for arrays, `table.convert()` for serialization
 
