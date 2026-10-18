@@ -9,7 +9,60 @@ permissions:
   contents: write
 
 jobs:
+  # Decides whether this run needs a macOS runner, a pool every macOS job on
+  # the account shares. A pull request takes one only when it changes more
+  # than documentation. A push to main takes one only to release, since the
+  # pull request already ran the tests; a release is a push that raises
+  # VERSION above the latest GitHub release.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      macos: ${{ steps.decide.outputs.macos }}
+      release: ${{ steps.decide.outputs.release }}
+      version: ${{ steps.decide.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Decide
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          VERSION=$(tr -d '[:space:]' < VERSION)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          if [ "$EVENT" = "pull_request" ]; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            changed=$(git diff --name-only "$BASE_SHA" HEAD)
+            printf 'Changed files:\n%s\n' "$changed"
+            if printf '%s\n' "$changed" | grep -qvE '\.md$|^LICENSE$|^config\.template\.toml$|^\.gitignore$|^$'; then
+              echo "macos=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "macos=false" >> "$GITHUB_OUTPUT"
+            fi
+            exit 0
+          fi
+
+          LATEST=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q '.tagName' 2>/dev/null | sed 's/^v//')
+          LATEST=${LATEST:-0.0.0}
+          if [ "$VERSION" != "$LATEST" ] && printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -1 | grep -qx "$VERSION"; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "macos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "macos=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # The only macOS job. On a pull request it tests and builds an unsigned DMG.
+  # On a release it tests, builds and signs the DMG, notarises it, publishes
+  # the release and updates the Homebrew tap on the same runner.
   build:
+    needs: changes
+    if: needs.changes.outputs.macos == 'true'
     runs-on: xcode-27
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -21,59 +74,22 @@ jobs:
         run: swift test
 
       - name: Build DMG
+        if: needs.changes.outputs.release != 'true'
         run: task build-dmg
 
       - name: Upload DMG
+        if: needs.changes.outputs.release != 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: BrowserSchedule.dmg
           path: .build/pkg/BrowserSchedule.dmg
-
-  release:
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: xcode-27
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-
-      - name: Read Version
-        id: version
-        run: |
-          VERSION=$(cat VERSION | tr -d '[:space:]')
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-      - name: Get Latest Release
-        id: latest
-        run: |
-          LATEST=$(gh release view --json tagName -q '.tagName' 2>/dev/null | sed 's/^v//' || echo "0.0.0")
-          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-      - name: Check Version Bump
-        id: check
-        run: |
-          CURRENT="${{ steps.version.outputs.version }}"
-          LATEST="${{ steps.latest.outputs.version }}"
-          if printf '%s\n%s' "$LATEST" "$CURRENT" | sort -V | tail -1 | grep -qx "$CURRENT" && [ "$CURRENT" != "$LATEST" ]; then
-            echo "should_release=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "should_release=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Install Task and uv
-        if: steps.check.outputs.should_release == 'true'
-        run: brew install go-task/tap/go-task uv
 
       # The Developer ID certificate goes into a keychain made for this job
       # alone, with a random password, and codesign may use its key without a
       # prompt. The identity name is read back from the certificate so it can
       # be renewed without editing the workflow.
       - name: Import Developer ID certificate
-        if: steps.check.outputs.should_release == 'true'
+        if: needs.changes.outputs.release == 'true'
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -95,11 +111,11 @@ jobs:
           echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
 
       - name: Build signed DMG
-        if: steps.check.outputs.should_release == 'true'
+        if: needs.changes.outputs.release == 'true'
         run: task build-dmg
 
       - name: Notarise
-        if: steps.check.outputs.should_release == 'true'
+        if: needs.changes.outputs.release == 'true'
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -111,13 +127,13 @@ jobs:
           task notarize
 
       - name: Create Release
-        if: steps.check.outputs.should_release == 'true'
+        if: needs.changes.outputs.release == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          tag_name: v${{ steps.version.outputs.version }}
+          tag_name: v${{ needs.changes.outputs.version }}
           files: ./.build/pkg/BrowserSchedule.dmg
           body: |
-            ## BrowserSchedule v${{ steps.version.outputs.version }}
+            ## BrowserSchedule v${{ needs.changes.outputs.version }}
 
             Automatic browser switching based on time, day, and URL patterns.
 
@@ -137,10 +153,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Update Homebrew Tap
-        if: steps.check.outputs.should_release == 'true'
+        if: needs.changes.outputs.release == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ needs.changes.outputs.version }}
         run: |
           SHA256=$(shasum -a 256 .build/pkg/BrowserSchedule.dmg | awk '{print $1}')
 
@@ -157,6 +173,7 @@ jobs:
           printf '  desc "Automatic browser switching based on time, day, and URL patterns"\n' >> Casks/browser-schedule.rb
           printf '  homepage "https://github.com/radiosilence/browser-schedule"\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
+          printf '  depends_on arch: :arm64\n' >> Casks/browser-schedule.rb
           printf '  depends_on macos: :sonoma\n' >> Casks/browser-schedule.rb
           printf '\n' >> Casks/browser-schedule.rb
           printf '  app "BrowserSchedule.app"\n' >> Casks/browser-schedule.rb
