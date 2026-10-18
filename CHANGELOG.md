@@ -6,6 +6,7 @@
 
 - **Releases are Apple silicon only.** The cask declares `depends_on arch: :arm64`; Intel Macs are no longer supported.
 - **CI uses at most one macOS runner per run.** The account's macOS runners are a small shared pool. Pull requests that change only documentation skip the macOS build, pushes to main that are not releases skip it entirely because the pull request already tested them, and a release builds, signs, notarises and publishes in one job instead of rebuilding on a second runner.
+- **Pull requests build the DMG only when they bump VERSION.** Other pull requests run the tests alone, since the release build adds nothing they need. A release pull request still packages an unsigned DMG, even if the tests fail, so packaging problems surface before the version merges.
 - **The DMG opens to a styled install window.** It has a background matching the app icon, an Applications shortcut to drag the app onto, and the app icon as the volume icon. It is built with dmgbuild instead of `hdiutil create`, which could only produce a bare folder containing the app.
 
 ## v1.3.3

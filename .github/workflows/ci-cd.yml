@@ -11,14 +11,16 @@ permissions:
 jobs:
   # Decides whether this run needs a macOS runner, a pool every macOS job on
   # the account shares. A pull request takes one only when it changes more
-  # than documentation. A push to main takes one only to release, since the
-  # pull request already ran the tests; a release is a push that raises
-  # VERSION above the latest GitHub release.
+  # than documentation, and packages the DMG only when it changes VERSION. A
+  # push to main takes one only to release, since the pull request already
+  # ran the tests; a release is a push that raises VERSION above the latest
+  # GitHub release.
   changes:
     runs-on: ubuntu-latest
     outputs:
       macos: ${{ steps.decide.outputs.macos }}
       release: ${{ steps.decide.outputs.release }}
+      package: ${{ steps.decide.outputs.package }}
       version: ${{ steps.decide.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -44,6 +46,11 @@ jobs:
             else
               echo "macos=false" >> "$GITHUB_OUTPUT"
             fi
+            if printf '%s\n' "$changed" | grep -qx 'VERSION'; then
+              echo "package=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "package=false" >> "$GITHUB_OUTPUT"
+            fi
             exit 0
           fi
 
@@ -56,10 +63,13 @@ jobs:
             echo "release=false" >> "$GITHUB_OUTPUT"
             echo "macos=false" >> "$GITHUB_OUTPUT"
           fi
+          echo "package=false" >> "$GITHUB_OUTPUT"
 
-  # The only macOS job. On a pull request it tests and builds an unsigned DMG.
-  # On a release it tests, builds and signs the DMG, notarises it, publishes
-  # the release and updates the Homebrew tap on the same runner.
+  # The only macOS job. On a pull request it runs the tests, and a pull
+  # request that bumps VERSION also builds an unsigned DMG so packaging
+  # breaks before the version merges. On a release it tests, builds and signs
+  # the DMG, notarises it, publishes the release and updates the Homebrew tap
+  # on the same runner.
   build:
     needs: changes
     if: needs.changes.outputs.macos == 'true'
@@ -73,12 +83,14 @@ jobs:
       - name: Run tests
         run: swift test
 
-      - name: Build DMG
-        if: needs.changes.outputs.release != 'true'
+      # Runs even when the tests fail, so one run reports both.
+      - name: Build unsigned DMG
+        id: dmg
+        if: ${{ !cancelled() && needs.changes.outputs.package == 'true' }}
         run: task build-dmg
 
       - name: Upload DMG
-        if: needs.changes.outputs.release != 'true'
+        if: ${{ !cancelled() && steps.dmg.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: BrowserSchedule.dmg
