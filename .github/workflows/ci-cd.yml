@@ -44,6 +44,7 @@ jobs:
       - id: filter
         env:
           EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
           GH_TOKEN: ${{ github.token }}
         # `app` decides whether this run takes a macOS runner, from a pool
         # every macOS job on the account shares.
@@ -58,17 +59,36 @@ jobs:
         # worked out, takes one.
         #
         # Whether this run releases is the one answer the release job reads,
-        # independent of the diff: a push that changes VERSION to a version
-        # with no GitHub release yet, or a manual run while VERSION has none.
-        # A pull request that changes VERSION is a release PR and builds.
+        # independent of the diff: a push that changes VERSION, or a manual run
+        # on main, while VERSION has no GitHub release and is above the latest
+        # one. A pull request that changes VERSION is a release PR and builds;
+        # it publishes nothing.
         run: |
           app=true release=false
           version=$(tr -d '[:space:]' < VERSION)
+          # A push compares with the commit before the whole push, which may be
+          # several commits back.
+          prior=HEAD^1
+          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then
+            prior=$BEFORE
+          fi
           bumped=false
-          if [ "$(git show HEAD^1:VERSION 2>/dev/null | tr -d '[:space:]')" != "$version" ]; then
+          if [ "$(git show "$prior:VERSION" 2>/dev/null | tr -d '[:space:]')" != "$version" ]; then
             bumped=true
           fi
-          published() { gh release view "v$version" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; }
+          # Releasable: no release for VERSION, and VERSION above the latest.
+          # If GitHub cannot be asked, fail rather than guess either way.
+          releasable() {
+            local out latest
+            if out=$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json tagName 2>&1); then
+              return 1
+            elif [ "$out" != "release not found" ]; then
+              echo "::error::could not check for release v$version: $out"
+              exit 1
+            fi
+            latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null | sed 's/^v//')
+            [ "$(printf '%s\n%s\n' "${latest:-0.0.0}" "$version" | sort -V | tail -1)" = "$version" ]
+          }
           case "$EVENT" in
             pull_request)
               release=$bumped
@@ -80,11 +100,11 @@ jobs:
               fi
               ;;
             push)
-              if [ "$bumped" = true ] && ! published; then release=true; fi
+              if [ "$bumped" = true ] && releasable; then release=true; fi
               app=$release
               ;;
             *)
-              if ! published; then release=true; fi
+              if [ "$GITHUB_REF" = refs/heads/main ] && releasable; then release=true; fi
               ;;
           esac
           {
@@ -103,9 +123,6 @@ jobs:
     if: needs.changes.outputs.app == 'true'
     runs-on: xcode-27
     timeout-minutes: 60
-    concurrency:
-      group: build-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
-      cancel-in-progress: true
     env:
       SIGN: ${{ github.event_name != 'pull_request' && needs.changes.outputs.release == 'true' }}
     steps:
@@ -194,7 +211,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: [changes, build, checks]
-    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') && needs.checks.result == 'success' && needs.build.result == 'success' && needs.changes.outputs.release == 'true' && github.event_name != 'pull_request' }}
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.build.result == 'success' && needs.changes.outputs.release == 'true' && github.event_name != 'pull_request' }}
     permissions:
       contents: write
     steps:
@@ -207,6 +224,7 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: v${{ needs.changes.outputs.version }}
+          target_commitish: ${{ github.sha }}
           files: dist/BrowserSchedule.dmg
           body: |
             ## BrowserSchedule v${{ needs.changes.outputs.version }}
