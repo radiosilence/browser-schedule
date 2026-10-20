@@ -44,7 +44,7 @@ jobs:
       - id: filter
         env:
           EVENT: ${{ github.event_name }}
-          BEFORE: ${{ github.event.before }}
+          HEAD_REF: ${{ github.head_ref }}
           GH_TOKEN: ${{ github.token }}
         # `app` decides whether this run takes a macOS runner, from a pool
         # every macOS job on the account shares.
@@ -59,31 +59,30 @@ jobs:
         # worked out, takes one.
         #
         # Whether this run releases is the one answer the release job reads,
-        # independent of the diff: a push that changes VERSION, or a manual run
-        # on main, while VERSION has no GitHub release and is above the latest
-        # one. A pull request that changes VERSION is a release PR and builds;
-        # it publishes nothing.
+        # independent of the diff: on main, a push whose commit changes VERSION,
+        # or a manual run, while VERSION has no GitHub release and is above the
+        # latest one. Only the commit that changes VERSION releases, so a push
+        # landing while a release is still running cannot release it again; a
+        # manual run retries a release that never happened. A pull request that
+        # changes VERSION (or on a `release-v*` branch) is a release PR and
+        # builds; it publishes nothing.
         run: |
           app=true release=false
           version=$(tr -d '[:space:]' < VERSION)
-          # A push compares with the commit before the whole push, which may be
-          # several commits back.
-          prior=HEAD^1
-          if [ "$EVENT" = push ] && [ -n "$BEFORE" ] && git fetch -q --depth=1 origin "$BEFORE" 2>/dev/null; then
-            prior=$BEFORE
-          fi
           bumped=false
-          if [ "$(git show "$prior:VERSION" 2>/dev/null | tr -d '[:space:]')" != "$version" ]; then
+          if [ "$(git show HEAD^1:VERSION 2>/dev/null | tr -d '[:space:]')" != "$version" ]; then
             bumped=true
           fi
-          # Releasable: no release for VERSION, and VERSION above the latest.
-          # If GitHub cannot be asked, fail rather than guess either way.
+          # Releasable: on main, no release for VERSION, and VERSION above the
+          # latest. Only a 404 means unreleased; if GitHub cannot be asked, fail
+          # rather than guess either way.
           releasable() {
             local out latest
-            if out=$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json tagName 2>&1); then
+            [ "$GITHUB_REF" = refs/heads/main ] || return 1
+            if out=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" 2>&1); then
               return 1
-            elif [ "$out" != "release not found" ]; then
-              echo "::error::could not check for release v$version: $out"
+            elif ! grep -q 'HTTP 404' <<< "$out"; then
+              echo "::error::cannot tell whether v$version is released: $out"
               exit 1
             fi
             latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null | sed 's/^v//')
@@ -91,6 +90,7 @@ jobs:
           }
           case "$EVENT" in
             pull_request)
+              case "$HEAD_REF" in release-v*) bumped=true ;; esac
               release=$bumped
               if [ "$release" = false ] && files=$(git diff --name-only HEAD^1 HEAD); then
                 printf 'changes since base:\n%s\n' "$files" | sed '2,$s/^/  /'
@@ -104,7 +104,7 @@ jobs:
               app=$release
               ;;
             *)
-              if [ "$GITHUB_REF" = refs/heads/main ] && releasable; then release=true; fi
+              if releasable; then release=true; fi
               ;;
           esac
           {
@@ -183,6 +183,7 @@ jobs:
           name: BrowserSchedule.dmg
           path: .build/pkg/BrowserSchedule.dmg
           if-no-files-found: error
+          retention-days: ${{ needs.changes.outputs.release == 'true' && 90 || 7 }}
 
   checks:
     name: Checks
