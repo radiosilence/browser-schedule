@@ -104,7 +104,7 @@ Configurable via the Settings UI or direct file editing. The app validates time 
 - Uses Swift Package Manager with TOMLKit for TOML parsing
 - DMG built by `uvx dmgbuild` from `Resources/dmg-settings.py`; background from `Scripts/generate-dmg-background.swift` (`task dmg-background`). Icon positions in both files must agree
 - Signing: `create-app-bundle` ad-hoc signs unless `SIGN_IDENTITY` is set, in which case it signs with hardened runtime + timestamp for notarisation (`task notarize`). CI imports the Developer ID cert into a throwaway keychain on release runs.
-- CI: an ubuntu `changes` job decides whether the single macOS `build` job runs (PRs touching more than docs; main pushes only when VERSION exceeds the latest release). Releases are arm64 only.
+- CI/CD (`.github/workflows/ci-cd.yml`): `changes` decides whether the single macOS `build` job runs (PRs touching an allowlisted build input; main pushes only when they release). `Checks` aggregates CI and is the only status to require. `release` (Linux) publishes the DMG `build` signed and notarised, after `Checks`, when a push changes VERSION to an unreleased version or a manual run finds VERSION unreleased. Releases are arm64 only.
 - App bundle at `/Applications/BrowserSchedule.app` with `LSUIElement=true` in Info.plist (background by default, switches to foreground when showing UI)
 - TOMLKit API: use direct assignment to TOMLTable subscripts (`table["key"] = "value"`), `TOMLArray(["a","b"])` for arrays, `table.convert()` for serialization
 

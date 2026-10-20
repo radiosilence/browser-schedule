@@ -136,6 +136,12 @@ task test-all       # Run both unit and integration tests
 - `task logs-all` - Show all logs (last 24 hours)
 - `task clean` - Clean build artifacts
 
+### CI/CD
+
+`.github/workflows/ci-cd.yml` runs CI, then CD on main. The `changes` job decides from the diff whether the change needs the one macOS job, `build`; the account's macOS runners are a small shared pool, so a pull request takes one only when it touches a path in `changes`' allowlist (sources, tests, resources, scripts, the package manifest, the Taskfile, VERSION or `.github/`), and a push to main takes one only to release, since its pull request already tested the same tree. A skipped job is a pass. A new top-level directory the build reads from must be added to that allowlist or pull requests touching only it will skip the build.
+
+`Checks` aggregates every CI job and is the only status a ruleset should require. `release` runs after it when a push changes VERSION to a version with no GitHub release, or on a manual run while VERSION is unreleased (how a failed release is retried). It publishes the DMG `build` signed and notarised and updates the Homebrew tap.
+
 ### DMG Layout
 
 `task build-dmg` uses [dmgbuild](https://github.com/dmgbuild/dmgbuild) (run through `uvx`, so it needs [uv](https://docs.astral.sh/uv/)) with `Resources/dmg-settings.py`. dmgbuild writes the Finder window layout into the image's `.DS_Store` directly instead of scripting Finder, so it works on headless CI runners. The background is a 1x/2x TIFF generated in Core Graphics; icon positions in the settings file must match the constants in the generator script. Finder draws icon labels in black on an image background regardless of system appearance, so the labels sit on light plates.
