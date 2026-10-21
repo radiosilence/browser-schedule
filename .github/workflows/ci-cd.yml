@@ -1,69 +1,130 @@
 name: CI/CD
 
+# Two halves in one run, so the release ships the DMG the build produced.
+#
+# CI ends in `Checks`, the one status a ruleset should require. `build`, the
+# only macOS job, runs only when the change needs it (see `changes`); a skipped
+# job passes `Checks`, a failed or cancelled one fails it.
+#
+# CD runs on main after `Checks`. A push that changes VERSION to a version not
+# yet released publishes the GitHub release and updates the Homebrew tap. A
+# manual run releases VERSION if it is not out yet, which is how a failed
+# release is retried.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+# A pull request's newer push cancels its older run, and so does a newer push
+# to main that releases nothing. A push that changes VERSION may release, so it
+# gets a group of its own and is never cancelled; nor is a manual run.
+concurrency:
+  group: "ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name == 'workflow_dispatch' && format('dispatch-{0}', github.run_id) || contains(github.event.head_commit.modified, 'VERSION') && format('release-{0}', github.sha) || 'main' }}"
+  cancel-in-progress: "${{ github.event_name == 'pull_request' || (github.event_name == 'push' && !contains(github.event.head_commit.modified, 'VERSION')) }}"
 
 jobs:
-  # Decides whether this run needs a macOS runner, a pool every macOS job on
-  # the account shares. A pull request takes one only when it changes more
-  # than documentation. A push to main takes one only to release, since the
-  # pull request already ran the tests; a release is a push that raises
-  # VERSION above the latest GitHub release.
+  # ── CI ──────────────────────────────────────────────────────────────────
+
   changes:
+    name: Changes
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      macos: ${{ steps.decide.outputs.macos }}
-      release: ${{ steps.decide.outputs.release }}
-      version: ${{ steps.decide.outputs.version }}
+      app: ${{ steps.filter.outputs.app }}
+      release: ${{ steps.filter.outputs.release }}
+      version: ${{ steps.filter.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
-
-      - name: Decide
-        id: decide
+          fetch-depth: 2
+      - id: filter
         env:
-          GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          GH_TOKEN: ${{ github.token }}
+        # `app` decides whether this run takes a macOS runner, from a pool
+        # every macOS job on the account shares.
+        #
+        # A pull request takes one when it changes anything the app is built
+        # from, compared with its base (the merge commit's first parent).
+        # Allowlisted, so a new top-level directory of code needs adding here.
+        # Markdown is documentation wherever it sits.
+        #
+        # A push to main takes one only to release, since its pull request
+        # already tested the same tree. A manual run, or a diff that cannot be
+        # worked out, takes one.
+        #
+        # Whether this run releases is the one answer the release job reads,
+        # independent of the diff: on main, a push whose commit changes VERSION,
+        # or a manual run, while VERSION has no GitHub release and is above the
+        # latest one. Only the commit that changes VERSION releases, so a push
+        # landing while a release is still running cannot release it again; a
+        # manual run retries a release that never happened. A pull request that
+        # changes VERSION (or on a `release-v*` branch) is a release PR and
+        # builds; it publishes nothing.
         run: |
-          VERSION=$(tr -d '[:space:]' < VERSION)
-          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
-
-          if [ "$EVENT" = "pull_request" ]; then
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            changed=$(git diff --name-only "$BASE_SHA" HEAD)
-            printf 'Changed files:\n%s\n' "$changed"
-            if printf '%s\n' "$changed" | grep -qvE '\.md$|^LICENSE$|^config\.template\.toml$|^\.gitignore$|^$'; then
-              echo "macos=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "macos=false" >> "$GITHUB_OUTPUT"
+          app=true release=false
+          version=$(tr -d '[:space:]' < VERSION)
+          bumped=false
+          if [ "$(git show HEAD^1:VERSION 2>/dev/null | tr -d '[:space:]')" != "$version" ]; then
+            bumped=true
+          fi
+          # Releasable: on main, no release for VERSION, and VERSION above the
+          # latest. Only a 404 means unreleased; if GitHub cannot be asked, fail
+          # rather than guess either way.
+          releasable() {
+            local out latest
+            [ "$GITHUB_REF" = refs/heads/main ] || return 1
+            if out=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v$version" 2>&1); then
+              return 1
+            elif ! grep -q 'HTTP 404' <<< "$out"; then
+              echo "::error::cannot tell whether v$version is released: $out"
+              exit 1
             fi
-            exit 0
-          fi
+            latest=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q .tagName 2>/dev/null | sed 's/^v//')
+            [ "$(printf '%s\n%s\n' "${latest:-0.0.0}" "$version" | sort -V | tail -1)" = "$version" ]
+          }
+          case "$EVENT" in
+            pull_request)
+              case "$HEAD_REF" in release-v*) bumped=true ;; esac
+              release=$bumped
+              if [ "$release" = false ] && files=$(git diff --name-only HEAD^1 HEAD); then
+                printf 'changes since base:\n%s\n' "$files" | sed '2,$s/^/  /'
+                printf '%s\n' "$files" \
+                  | grep -E '^(Sources|Tests|Resources|Scripts)/|^Package\.(swift|resolved)$|^Taskfile\.yml$|^VERSION$|^\.github/' \
+                  | grep -qvE '\.md$' || app=false
+              fi
+              ;;
+            push)
+              if [ "$bumped" = true ] && releasable; then release=true; fi
+              app=$release
+              ;;
+            *)
+              if releasable; then release=true; fi
+              ;;
+          esac
+          {
+            echo "app=$app"
+            echo "release=$release"
+            echo "version=$version"
+          } | tee -a "$GITHUB_OUTPUT"
 
-          LATEST=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName -q '.tagName' 2>/dev/null | sed 's/^v//')
-          LATEST=${LATEST:-0.0.0}
-          if [ "$VERSION" != "$LATEST" ] && printf '%s\n%s\n' "$LATEST" "$VERSION" | sort -V | tail -1 | grep -qx "$VERSION"; then
-            echo "release=true" >> "$GITHUB_OUTPUT"
-            echo "macos=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "macos=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  # The only macOS job. On a pull request it tests and builds an unsigned DMG.
-  # On a release it tests, builds and signs the DMG, notarises it, publishes
-  # the release and updates the Homebrew tap on the same runner.
+  # The only macOS job. It tests and builds the DMG, which a pull request
+  # uploads unsigned. A release run instead signs and notarises it on the same
+  # runner and uploads that for `release` to publish, so nothing is built
+  # twice and the publish itself runs on Linux.
   build:
+    name: Build
     needs: changes
-    if: needs.changes.outputs.macos == 'true'
+    if: needs.changes.outputs.app == 'true'
     runs-on: xcode-27
+    timeout-minutes: 60
+    env:
+      SIGN: ${{ github.event_name != 'pull_request' && needs.changes.outputs.release == 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -73,23 +134,12 @@ jobs:
       - name: Run tests
         run: swift test
 
-      - name: Build DMG
-        if: needs.changes.outputs.release != 'true'
-        run: task build-dmg
-
-      - name: Upload DMG
-        if: needs.changes.outputs.release != 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: BrowserSchedule.dmg
-          path: .build/pkg/BrowserSchedule.dmg
-
       # The Developer ID certificate goes into a keychain made for this job
       # alone, with a random password, and codesign may use its key without a
       # prompt. The identity name is read back from the certificate so it can
       # be renewed without editing the workflow.
       - name: Import Developer ID certificate
-        if: needs.changes.outputs.release == 'true'
+        if: env.SIGN == 'true'
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -104,18 +154,19 @@ jobs:
             -P "$MACOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           rm "$RUNNER_TEMP/certificate.p12"
           security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" >/dev/null
+          # The existing search list, one keychain per word.
+          # shellcheck disable=SC2046
           security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
           identity=$(security find-identity -v -p codesigning "$keychain" \
             | awk -F'"' '/Developer ID Application/ { print $2; exit }')
           test -n "$identity" || { echo "::error::no Developer ID Application identity in MACOS_CERTIFICATE_P12"; exit 1; }
           echo "SIGN_IDENTITY=$identity" >> "$GITHUB_ENV"
 
-      - name: Build signed DMG
-        if: needs.changes.outputs.release == 'true'
+      - name: Build DMG
         run: task build-dmg
 
       - name: Notarise
-        if: needs.changes.outputs.release == 'true'
+        if: env.SIGN == 'true'
         env:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
@@ -126,12 +177,56 @@ jobs:
           trap 'rm -f "$APPLE_API_KEY_PATH"' EXIT
           task notarize
 
+      - name: Upload DMG
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: BrowserSchedule.dmg
+          path: .build/pkg/BrowserSchedule.dmg
+          if-no-files-found: error
+          retention-days: ${{ needs.changes.outputs.release == 'true' && 90 || 7 }}
+
+  checks:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [changes, build]
+    if: always()
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          bad=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "skipped") | .key] | join(" ")')
+          if [ -n "$bad" ]; then
+            echo "::error::not passed: $bad"
+            exit 1
+          fi
+
+  # ── CD ──────────────────────────────────────────────────────────────────
+  #
+  # `checks` runs whatever its needs did, so this states every result it
+  # depends on rather than relying on the default.
+
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    needs: [changes, build, checks]
+    if: ${{ !cancelled() && needs.checks.result == 'success' && needs.build.result == 'success' && needs.changes.outputs.release == 'true' && github.event_name != 'pull_request' }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: BrowserSchedule.dmg
+          path: dist
+
       - name: Create Release
-        if: needs.changes.outputs.release == 'true'
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           tag_name: v${{ needs.changes.outputs.version }}
-          files: ./.build/pkg/BrowserSchedule.dmg
+          target_commitish: ${{ github.sha }}
+          files: dist/BrowserSchedule.dmg
           body: |
             ## BrowserSchedule v${{ needs.changes.outputs.version }}
 
@@ -153,33 +248,38 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Update Homebrew Tap
-        if: needs.changes.outputs.release == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           RELEASE_VERSION: ${{ needs.changes.outputs.version }}
         run: |
-          SHA256=$(shasum -a 256 .build/pkg/BrowserSchedule.dmg | awk '{print $1}')
+          if [ -z "$GITHUB_TOKEN" ]; then
+            echo "::notice::RELEASE_TOKEN is not set; skipping the Homebrew tap update"
+            exit 0
+          fi
+          SHA256=$(sha256sum dist/BrowserSchedule.dmg | awk '{print $1}')
 
-          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/radiosilence/homebrew-browser-schedule.git /tmp/homebrew-tap
-          cd /tmp/homebrew-tap
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/radiosilence/homebrew-browser-schedule.git" "$RUNNER_TEMP/homebrew-tap"
+          cd "$RUNNER_TEMP/homebrew-tap"
           mkdir -p Casks
 
-          printf 'cask "browser-schedule" do\n' > Casks/browser-schedule.rb
-          printf '  version "%s"\n' "${RELEASE_VERSION}" >> Casks/browser-schedule.rb
-          printf '  sha256 "%s"\n' "${SHA256}" >> Casks/browser-schedule.rb
-          printf '\n' >> Casks/browser-schedule.rb
-          printf '  url "https://github.com/radiosilence/browser-schedule/releases/download/v#{version}/BrowserSchedule.dmg"\n' >> Casks/browser-schedule.rb
-          printf '  name "BrowserSchedule"\n' >> Casks/browser-schedule.rb
-          printf '  desc "Automatic browser switching based on time, day, and URL patterns"\n' >> Casks/browser-schedule.rb
-          printf '  homepage "https://github.com/radiosilence/browser-schedule"\n' >> Casks/browser-schedule.rb
-          printf '\n' >> Casks/browser-schedule.rb
-          printf '  depends_on arch: :arm64\n' >> Casks/browser-schedule.rb
-          printf '  depends_on macos: :sonoma\n' >> Casks/browser-schedule.rb
-          printf '\n' >> Casks/browser-schedule.rb
-          printf '  app "BrowserSchedule.app"\n' >> Casks/browser-schedule.rb
-          printf '\n' >> Casks/browser-schedule.rb
-          printf '  zap trash: "~/.config/browser-schedule"\n' >> Casks/browser-schedule.rb
-          printf 'end\n' >> Casks/browser-schedule.rb
+          {
+            printf 'cask "browser-schedule" do\n'
+            printf '  version "%s"\n' "${RELEASE_VERSION}"
+            printf '  sha256 "%s"\n' "${SHA256}"
+            printf '\n'
+            printf '  url "https://github.com/radiosilence/browser-schedule/releases/download/v#{version}/BrowserSchedule.dmg"\n'
+            printf '  name "BrowserSchedule"\n'
+            printf '  desc "Automatic browser switching based on time, day, and URL patterns"\n'
+            printf '  homepage "https://github.com/radiosilence/browser-schedule"\n'
+            printf '\n'
+            printf '  depends_on arch: :arm64\n'
+            printf '  depends_on macos: :sonoma\n'
+            printf '\n'
+            printf '  app "BrowserSchedule.app"\n'
+            printf '\n'
+            printf '  zap trash: "~/.config/browser-schedule"\n'
+            printf 'end\n'
+          } > Casks/browser-schedule.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
