@@ -21,7 +21,7 @@ This installs via a [Homebrew Cask](https://github.com/radiosilence/homebrew-tap
 #### Brewfile
 
 ```ruby
-tap "radiosilence/browser-schedule"
+tap "radiosilence/tap"
 cask "browser-schedule"
 ```
 
