@@ -4,6 +4,7 @@
 
 ### Changed
 
+- **One Homebrew tap.** Install from `radiosilence/tap`, which holds every radiosilence formula and cask; `brew update` moves installs from the old `radiosilence/browser-schedule` tap.
 - **Releases are Apple silicon only.** The cask declares `depends_on arch: :arm64`; Intel Macs are no longer supported.
 - **CI/CD is one pipeline gated by `Checks`.** `Checks` aggregates every CI job, skipped ones passing, so it is the only status a ruleset needs to require. A release now needs a push that changes VERSION to a version with no GitHub release; a push that merely lands while VERSION is ahead of the latest release no longer releases. Publishing moved off the macOS runner into a Linux `release` job that ships the DMG the macOS job signed, after `Checks` passes. A manual run releases VERSION if it is unreleased, which is how a failed release is retried.
 - **CI uses at most one macOS runner per run.** The account's macOS runners are a small shared pool. Pull requests that change only documentation skip the macOS build, pushes to main that are not releases skip it entirely because the pull request already tested them, and a release builds, signs, notarises and publishes in one job instead of rebuilding on a second runner.

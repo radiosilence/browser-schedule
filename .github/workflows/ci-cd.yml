@@ -234,7 +234,7 @@ jobs:
 
             ### Install via Homebrew (Recommended)
             ```sh
-            brew install --cask radiosilence/browser-schedule/browser-schedule
+            brew install --cask radiosilence/tap/browser-schedule
             ```
 
             ### Install Manually
@@ -258,7 +258,7 @@ jobs:
           fi
           SHA256=$(sha256sum dist/BrowserSchedule.dmg | awk '{print $1}')
 
-          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/radiosilence/homebrew-browser-schedule.git" "$RUNNER_TEMP/homebrew-tap"
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/radiosilence/homebrew-tap.git" "$RUNNER_TEMP/homebrew-tap"
           cd "$RUNNER_TEMP/homebrew-tap"
           mkdir -p Casks
 
